@@ -1,0 +1,21 @@
+node_modules/
+data/
+backups/
+*.log
+.DS_Store
+Thumbs.db
+
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+project.lock.json
+*.cache
+
+# npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

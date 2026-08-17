@@ -1,0 +1,27 @@
+{
+  "name": "mykakeibo-app",
+  "version": "1.0.0",
+  "description": "MyKakeibo - 自宅サーバー/NAS向け家計簿Webアプリケーション",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "keywords": [
+    "kakeibo",
+    "budget",
+    "finance",
+    "docker",
+    "nas",
+    "ugreen"
+  ],
+  "author": "",
+  "license": "MIT"
+}

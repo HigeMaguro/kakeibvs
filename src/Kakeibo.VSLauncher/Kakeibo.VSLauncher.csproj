@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Kakeibo.VSLauncher</RootNamespace>
+    <AssemblyName>Kakeibo.VSLauncher</AssemblyName>
+    <Version>1.0.0</Version>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <!-- Node.js アプリと Docker 関連ファイルをプロジェクト内のファイルとして扱う (ビルドには影響しない) -->
+  <ItemGroup>
+    <None Update="app\**\*.*" CopyToOutputDirectory="Never" />
+    <None Update="server.js" CopyToOutputDirectory="Never" />
+    <None Update="package.json" CopyToOutputDirectory="Never" />
+    <None Update="package-lock.json" CopyToOutputDirectory="Never" />
+    <None Update="Dockerfile" CopyToOutputDirectory="Never" />
+    <None Update="docker-compose.yml" CopyToOutputDirectory="Never" />
+    <None Update=".dockerignore" CopyToOutputDirectory="Never" />
+    <None Update="README.md" CopyToOutputDirectory="Never" />
+    <None Update="DEPLOY_UGREEN_NAS.md" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+</Project>

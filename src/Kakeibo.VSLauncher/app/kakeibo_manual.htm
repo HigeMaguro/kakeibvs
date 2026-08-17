@@ -1,0 +1,1915 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>かんたん家計簿 スタートガイド</title>
+    <style>
+      :root {
+        --green: #10b981;
+        --green-dark: #059669;
+        --green-light: #d1fae5;
+        --blue: #3b82f6;
+        --blue-light: #dbeafe;
+        --orange: #f59e0b;
+        --orange-light: #fef3c7;
+        --red: #ef4444;
+        --red-light: #fee2e2;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-400: #94a3b8;
+        --gray-600: #475569;
+        --gray-800: #1e293b;
+        --gray-900: #0f172a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family:
+          'Hiragino Kaku Gothic ProN',
+          'ヒラギノ角ゴ ProN W3',
+          Meiryo,
+          'メイリオ',
+          'Yu Gothic',
+          '游ゴシック',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        color: var(--gray-800);
+        background: #ffffff;
+        line-height: 1.8;
+        -webkit-font-smoothing: antialiased;
+      }
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      /* ===== Hero ===== */
+      .hero {
+        background: linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%);
+        color: #fff;
+        padding: 80px 24px 100px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.15) 0, transparent 30%),
+          radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.12) 0, transparent 35%);
+        pointer-events: none;
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+      }
+      .hero-logo {
+        width: 96px;
+        height: 96px;
+        margin: 0 auto 24px;
+        background: #fff;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
+      }
+      .hero h1 {
+        font-size: 2.6rem;
+        margin: 0 0 12px;
+        letter-spacing: 0.02em;
+        font-weight: 800;
+      }
+      .hero p.subtitle {
+        font-size: 1.15rem;
+        margin: 0 0 24px;
+        opacity: 0.95;
+      }
+      .hero-meta {
+        display: inline-flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: 0.9rem;
+      }
+      .hero-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 6px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
+
+      /* ===== Section common ===== */
+      section {
+        padding: 72px 0;
+      }
+      section.alt {
+        background: var(--gray-50);
+      }
+      h2 {
+        font-size: 1.9rem;
+        margin: 0 0 8px;
+        color: var(--gray-900);
+        font-weight: 800;
+        letter-spacing: 0.01em;
+      }
+      h2 .num {
+        display: inline-block;
+        color: var(--green);
+        font-size: 1rem;
+        letter-spacing: 0.15em;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      h2 .num-wrap {
+        display: block;
+      }
+      .section-lead {
+        color: var(--gray-600);
+        margin: 0 0 40px;
+        font-size: 1.05rem;
+      }
+      h3 {
+        font-size: 1.25rem;
+        margin: 0 0 12px;
+        color: var(--gray-900);
+        font-weight: 700;
+      }
+
+      /* ===== TOC ===== */
+      .toc {
+        margin-top: -60px;
+        position: relative;
+        z-index: 2;
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px 40px;
+        box-shadow:
+          0 20px 40px -20px rgba(0, 0, 0, 0.15),
+          0 2px 8px rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--gray-100);
+      }
+      .toc h2 {
+        font-size: 1.15rem;
+        margin: 0 0 20px;
+        color: var(--gray-900);
+      }
+      .toc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .toc-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--gray-50);
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--gray-800);
+        font-weight: 600;
+        font-size: 0.95rem;
+        border: 1px solid transparent;
+      }
+      .toc-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--green);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      /* ===== Feature cards ===== */
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+      }
+      .feature-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px 28px;
+        text-align: center;
+        border: 1px solid var(--gray-100);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+      .feature-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .feature-icon.green {
+        background: var(--green-light);
+      }
+      .feature-icon.blue {
+        background: var(--blue-light);
+      }
+      .feature-icon.orange {
+        background: var(--orange-light);
+      }
+      .feature-card h3 {
+        margin-bottom: 8px;
+      }
+      .feature-card p {
+        margin: 0;
+        color: var(--gray-600);
+        font-size: 0.95rem;
+      }
+
+      /* ===== Steps ===== */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin-top: 40px;
+      }
+      .step {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px 24px;
+        border: 1px solid var(--gray-100);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        text-align: center;
+      }
+      .step-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--green-light);
+        color: var(--green-dark);
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        letter-spacing: 0.05em;
+      }
+      .step-badge .step-num {
+        background: var(--green);
+        color: #fff;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+      }
+      .step h3 {
+        font-size: 1.1rem;
+        margin-bottom: 16px;
+      }
+      .step-phone {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0 16px;
+      }
+      .step p {
+        color: var(--gray-600);
+        font-size: 0.92rem;
+        margin: 0;
+      }
+
+      /* ===== Callouts ===== */
+      .callout {
+        display: flex;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 16px;
+        margin: 32px 0 0;
+        align-items: flex-start;
+      }
+      .callout.tips {
+        background: var(--orange-light);
+        border-left: 4px solid var(--orange);
+      }
+      .callout.info {
+        background: var(--blue-light);
+        border-left: 4px solid var(--blue);
+      }
+      .callout-icon {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+      }
+      .callout.tips .callout-icon {
+        background: var(--orange);
+      }
+      .callout.info .callout-icon {
+        background: var(--blue);
+      }
+      .callout-body {
+        flex: 1;
+      }
+      .callout-title {
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 2px;
+      }
+      .callout-text {
+        color: var(--gray-800);
+        font-size: 0.95rem;
+        line-height: 1.7;
+      }
+
+      /* ===== Account section ===== */
+      .account-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 48px;
+        align-items: center;
+        margin-top: 20px;
+      }
+      .account-steps {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px;
+        border: 1px solid var(--gray-100);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+      .account-steps ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: acnt;
+      }
+      .account-steps li {
+        counter-increment: acnt;
+        display: flex;
+        gap: 16px;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+      .account-steps li + li {
+        border-top: 1px dashed var(--gray-200);
+      }
+      .account-steps li::before {
+        content: counter(acnt);
+        background: var(--green);
+        color: #fff;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+        font-size: 0.9rem;
+        margin-top: 4px;
+      }
+
+      /* ===== Expense/Income ===== */
+      .ei-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        margin-top: 40px;
+      }
+      .ei-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px 28px;
+        border: 1px solid var(--gray-100);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+      .ei-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 24px;
+      }
+      .ei-arrow {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .ei-arrow.expense {
+        background: var(--red-light);
+        color: var(--red);
+      }
+      .ei-arrow.income {
+        background: var(--green-light);
+        color: var(--green-dark);
+      }
+      .ei-title {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+      .ei-sub {
+        font-size: 0.85rem;
+        color: var(--gray-600);
+        margin: 0;
+      }
+      .cat-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .cat-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .cat-tag.expense {
+        background: var(--red-light);
+        color: #b91c1c;
+      }
+      .cat-tag.income {
+        background: var(--green-light);
+        color: var(--green-dark);
+      }
+
+      .ei-screens {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        justify-items: center;
+        margin-top: 40px;
+        padding: 32px;
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid var(--gray-100);
+      }
+
+      /* ===== Report ===== */
+      .report-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: center;
+        margin-top: 24px;
+      }
+      .report-charts {
+        background: #fff;
+        border-radius: 20px;
+        padding: 28px;
+        border: 1px solid var(--gray-100);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+      .legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 16px;
+        margin-top: 16px;
+        font-size: 0.88rem;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      /* ===== FAQ ===== */
+      .faq-list {
+        display: grid;
+        gap: 16px;
+        margin-top: 24px;
+      }
+      .faq {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid var(--gray-100);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      }
+      .faq-q {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 8px;
+      }
+      .faq-a {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        color: var(--gray-600);
+        font-size: 0.95rem;
+      }
+      .qbadge,
+      .abadge {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+        font-size: 0.9rem;
+      }
+      .qbadge {
+        background: var(--blue);
+        color: #fff;
+      }
+      .abadge {
+        background: var(--green);
+        color: #fff;
+      }
+
+      /* ===== App global header (ページメニュー) ===== */
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: saturate(180%) blur(8px);
+        -webkit-backdrop-filter: saturate(180%) blur(8px);
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .app-header-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        gap: 16px;
+        position: relative;
+      }
+      .app-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        color: var(--gray-900);
+        text-decoration: none;
+        font-size: 1.05rem;
+      }
+      .app-nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .app-nav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        color: var(--gray-800);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.92rem;
+        transition: background 0.15s, color 0.15s;
+      }
+      .app-nav a:hover {
+        background: var(--gray-50);
+        color: var(--green-dark);
+      }
+      .app-nav a.manual-link {
+        background: var(--green-light);
+        color: var(--green-dark);
+      }
+      .app-nav a.manual-link:hover {
+        background: var(--green);
+        color: #fff;
+      }
+      .badge-new {
+        background: var(--orange);
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 999px;
+        letter-spacing: 0.05em;
+      }
+      .app-nav-toggle {
+        display: none;
+        background: transparent;
+        border: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+      }
+      .app-nav-toggle:hover {
+        background: var(--gray-50);
+      }
+      .app-nav-toggle svg {
+        width: 24px;
+        height: 24px;
+      }
+      @media (max-width: 780px) {
+        .app-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 8px 16px 16px;
+          background: #fff;
+          border-bottom: 1px solid var(--gray-100);
+          box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.12);
+        }
+        .app-nav.open {
+          display: flex;
+        }
+        .app-nav a {
+          padding: 12px 14px;
+          border-radius: 10px;
+        }
+        .app-nav-toggle {
+          display: inline-flex;
+        }
+      }
+
+      /* ===== Footer ===== */
+      footer {
+        background: var(--gray-900);
+        color: #cbd5e1;
+        padding: 48px 24px;
+        text-align: center;
+      }
+      .footer-nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 14px;
+        margin-bottom: 24px;
+      }
+      .footer-nav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #e2e8f0;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: background 0.15s, color 0.15s;
+      }
+      .footer-nav a:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+      .footer-nav a.manual-link {
+        background: var(--green);
+        color: #fff;
+        border-color: var(--green);
+      }
+      .footer-nav a.manual-link:hover {
+        background: var(--green-dark);
+        border-color: var(--green-dark);
+      }
+      footer .logo-mini {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        font-weight: 700;
+        color: #fff;
+        font-size: 1.1rem;
+      }
+      footer p {
+        margin: 6px 0;
+        font-size: 0.9rem;
+      }
+      footer a {
+        color: #86efac;
+        text-decoration: none;
+      }
+
+      /* ===== Responsive ===== */
+      @media (max-width: 780px) {
+        .hero {
+          padding: 60px 20px 80px;
+        }
+        .hero h1 {
+          font-size: 1.9rem;
+        }
+        section {
+          padding: 56px 0;
+        }
+        .steps {
+          grid-template-columns: 1fr;
+        }
+        .account-layout {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        .ei-grid {
+          grid-template-columns: 1fr;
+        }
+        .ei-screens {
+          grid-template-columns: 1fr;
+        }
+        .report-layout {
+          grid-template-columns: 1fr;
+        }
+        .toc {
+          padding: 24px;
+          margin-top: -40px;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ============ APP HEADER (ページメニュー) ============ -->
+    <header class="app-header">
+      <div class="app-header-inner">
+        <a class="app-brand" href="#top" aria-label="かんたん家計簿 トップへ">
+          <svg width="28" height="28" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="4" y="8" width="32" height="26" rx="4" fill="#10b981" />
+            <rect x="4" y="8" width="32" height="6" rx="4" fill="#059669" />
+            <polyline
+              points="10,26 16,22 22,24 28,18"
+              fill="none"
+              stroke="#fff"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          かんたん家計簿
+        </a>
+        <nav class="app-nav" id="appNav" aria-label="ページメニュー">
+          <a href="#intro">ホーム</a>
+          <a href="#input">入力</a>
+          <a href="#accounts">口座</a>
+          <a href="#records">記録</a>
+          <a href="#report">レポート</a>
+          <a href="#faq">FAQ</a>
+          <a
+            class="manual-link"
+            href="https://www.genspark.ai/api/files/s/igcZWhpa?token=Z0FBQUFBQnFlc1J5WnBCWER0M2piNHlSZDFjZndRV1kzWGhWZWZhcjZPYUhpUVNmTEFrZHUtSWhpQ2h2ZlpoeVhxUFVkb3BwNFAwa05pcXN4MVQyZHM4WnJUQ3JTREttYjJTMGdUbUpxMk9lZWFBZXRIdmI5LUZ3MUlUaFZKVHZVU28zTUFnN1V3Ym9fRHM5WWtYbGExb3NhRFY2RU1Qc2FFUjdCV1RkM3ZLaFJjRUF2XzBQZDJRS3E1Y2ZWdEFfMFVJVl9IZ1pES0NqYUNUZFdXaTljQkZPdVpCXzR1Q2t2d1FlWDkydzZDQ1V6cVhiZXRKUVQ2TTAteHhoN1VfQUV1elg0OWNVUHNyUXVQcDNNT1NRVmx0aWZ5UU55ZlVjbnc9PQ"
+            target="_blank"
+            rel="noopener"
+            title="使い方マニュアル（図・スクリーンショット付き）"
+          >
+            📖 使い方マニュアル <span class="badge-new">NEW</span>
+          </a>
+        </nav>
+        <button
+          class="app-nav-toggle"
+          type="button"
+          aria-label="メニューを開く"
+          aria-controls="appNav"
+          aria-expanded="false"
+          onclick="var n=document.getElementById('appNav');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',String(o));"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="20" y2="17" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ============ HERO ============ -->
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="hero-logo">
+          <!-- Logo: 通帳 + 折れ線グラフ -->
+          <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="12" width="48" height="40" rx="6" fill="#10b981" />
+            <rect x="8" y="12" width="48" height="10" rx="6" fill="#059669" />
+            <rect x="14" y="28" width="36" height="3" rx="1.5" fill="#fff" opacity="0.6" />
+            <polyline
+              points="14,44 22,38 30,42 38,32 46,36"
+              fill="none"
+              stroke="#fff"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="14" cy="44" r="2" fill="#fff" />
+            <circle cx="22" cy="38" r="2" fill="#fff" />
+            <circle cx="30" cy="42" r="2" fill="#fff" />
+            <circle cx="38" cy="32" r="2" fill="#fbbf24" />
+            <circle cx="46" cy="36" r="2" fill="#fff" />
+          </svg>
+        </div>
+        <h1>かんたん家計簿 スタートガイド</h1>
+        <p class="subtitle">毎日の記録が、未来の安心に。</p>
+        <div class="hero-meta">
+          <span class="hero-badge">📱 v2.5</span>
+          <span class="hero-badge">対応: iOS ・ Android</span>
+          <span class="hero-badge">2026年版</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ TOC ============ -->
+    <div class="container">
+      <nav class="toc" id="top">
+        <h2>📖 目次</h2>
+        <div class="toc-grid">
+          <a class="toc-item" href="#intro"><span class="toc-num">1</span>はじめに</a>
+          <a class="toc-item" href="#input"><span class="toc-num">2</span>スマホでかんたん入力</a>
+          <a class="toc-item" href="#accounts"><span class="toc-num">3</span>預金口座の管理</a>
+          <a class="toc-item" href="#records"><span class="toc-num">4</span>支出・収入の記録</a>
+          <a class="toc-item" href="#report"><span class="toc-num">5</span>レポートで振り返り</a>
+          <a class="toc-item" href="#faq"><span class="toc-num">6</span>よくある質問</a>
+        </div>
+      </nav>
+    </div>
+
+    <!-- ============ 1. はじめに ============ -->
+    <section id="intro">
+      <div class="container">
+        <div class="num-wrap"><span class="num">01 &nbsp;INTRODUCTION</span></div>
+        <h2>はじめに</h2>
+        <p class="section-lead">
+          「かんたん家計簿」は、日々のお金の出入りをすばやく記録し、可視化するためのアプリです。3つの特徴をご紹介します。
+        </p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon green">
+              <!-- 時計 -->
+              <svg width="40" height="40" viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="16" fill="none" stroke="#059669" stroke-width="3" />
+                <line x1="20" y1="20" x2="20" y2="10" stroke="#059669" stroke-width="3" stroke-linecap="round" />
+                <line x1="20" y1="20" x2="27" y2="22" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" />
+                <circle cx="20" cy="20" r="2" fill="#059669" />
+              </svg>
+            </div>
+            <h3>30秒で入力完了</h3>
+            <p>金額を入れてカテゴリを選ぶだけ。忙しい毎日でも、レジを出たその場で記録できます。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon blue">
+              <!-- 通帳 -->
+              <svg width="40" height="40" viewBox="0 0 40 40">
+                <rect x="5" y="8" width="30" height="24" rx="3" fill="#3b82f6" />
+                <rect x="5" y="8" width="30" height="6" fill="#2563eb" />
+                <line x1="10" y1="20" x2="30" y2="20" stroke="#fff" stroke-width="1.5" opacity="0.7" />
+                <line x1="10" y1="24" x2="26" y2="24" stroke="#fff" stroke-width="1.5" opacity="0.7" />
+                <line x1="10" y1="28" x2="22" y2="28" stroke="#fff" stroke-width="1.5" opacity="0.7" />
+              </svg>
+            </div>
+            <h3>銀行口座を一元管理</h3>
+            <p>複数の銀行・電子マネー・現金を一つの画面で管理。総資産がひと目で分かります。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon orange">
+              <!-- 円グラフ -->
+              <svg width="40" height="40" viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="14" fill="#fbbf24" />
+                <path d="M 20 20 L 20 6 A 14 14 0 0 1 32.12 27 Z" fill="#f59e0b" />
+                <path d="M 20 20 L 32.12 27 A 14 14 0 0 1 12 32 Z" fill="#ef4444" />
+                <circle cx="20" cy="20" r="5" fill="#fff" />
+              </svg>
+            </div>
+            <h3>グラフで見える化</h3>
+            <p>カテゴリ別の支出比率や月次の推移をグラフで表示。「使いすぎ」に気づきやすくなります。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. スマホでかんたん入力 ============ -->
+    <section id="input" class="alt">
+      <div class="container">
+        <div class="num-wrap"><span class="num">02 &nbsp;QUICK INPUT</span></div>
+        <h2>スマホでかんたん入力</h2>
+        <p class="section-lead">3ステップで支出や収入を記録できます。慣れると本当に30秒です。</p>
+
+        <div class="steps">
+          <!-- Step 1 -->
+          <div class="step">
+            <div class="step-badge"><span class="step-num">1</span>STEP</div>
+            <h3>「＋」ボタンをタップ</h3>
+            <div class="step-phone">
+              <!-- スマホSVG Step1 -->
+              <svg
+                width="200"
+                height="380"
+                viewBox="0 0 200 380"
+                xmlns="http://www.w3.org/2000/svg"
+                style="filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15))"
+              >
+                <!-- Frame -->
+                <rect x="4" y="4" width="192" height="372" rx="28" fill="#1e293b" />
+                <rect x="10" y="10" width="180" height="360" rx="22" fill="#ffffff" />
+                <!-- Notch -->
+                <rect x="72" y="14" width="56" height="10" rx="5" fill="#1e293b" />
+                <!-- Status bar -->
+                <text x="24" y="40" font-size="9" font-family="sans-serif" fill="#334155" font-weight="700">9:41</text>
+                <circle cx="170" cy="37" r="2.5" fill="#334155" />
+                <rect x="158" y="34" width="8" height="6" rx="1" fill="none" stroke="#334155" stroke-width="1" />
+                <!-- Header -->
+                <text x="24" y="66" font-size="14" font-family="sans-serif" fill="#0f172a" font-weight="800">
+                  今月の収支
+                </text>
+                <text x="24" y="90" font-size="20" font-family="sans-serif" fill="#059669" font-weight="800">
+                  + ¥54,200
+                </text>
+                <line x1="24" y1="102" x2="176" y2="102" stroke="#e2e8f0" stroke-width="1" />
+                <!-- List items -->
+                <text x="24" y="122" font-size="9" font-family="sans-serif" fill="#64748b" font-weight="600">
+                  最近の記録
+                </text>
+                <!-- item 1 -->
+                <circle cx="34" cy="142" r="10" fill="#fee2e2" />
+                <text x="30" y="146" font-size="10" fill="#ef4444">🍱</text>
+                <text x="52" y="140" font-size="10" font-family="sans-serif" fill="#0f172a" font-weight="700">
+                  ランチ
+                </text>
+                <text x="52" y="152" font-size="8" font-family="sans-serif" fill="#94a3b8">今日 12:30</text>
+                <text
+                  x="176"
+                  y="146"
+                  font-size="10"
+                  font-family="sans-serif"
+                  fill="#ef4444"
+                  font-weight="700"
+                  text-anchor="end"
+                >
+                  -¥980
+                </text>
+                <!-- item 2 -->
+                <circle cx="34" cy="172" r="10" fill="#dbeafe" />
+                <text x="30" y="176" font-size="10" fill="#3b82f6">🚃</text>
+                <text x="52" y="170" font-size="10" font-family="sans-serif" fill="#0f172a" font-weight="700">
+                  電車
+                </text>
+                <text x="52" y="182" font-size="8" font-family="sans-serif" fill="#94a3b8">今日 08:15</text>
+                <text
+                  x="176"
+                  y="176"
+                  font-size="10"
+                  font-family="sans-serif"
+                  fill="#ef4444"
+                  font-weight="700"
+                  text-anchor="end"
+                >
+                  -¥320
+                </text>
+                <!-- item 3 -->
+                <circle cx="34" cy="202" r="10" fill="#d1fae5" />
+                <text x="30" y="206" font-size="10" fill="#10b981">💰</text>
+                <text x="52" y="200" font-size="10" font-family="sans-serif" fill="#0f172a" font-weight="700">
+                  給与
+                </text>
+                <text x="52" y="212" font-size="8" font-family="sans-serif" fill="#94a3b8">6/25</text>
+                <text
+                  x="176"
+                  y="206"
+                  font-size="10"
+                  font-family="sans-serif"
+                  fill="#059669"
+                  font-weight="700"
+                  text-anchor="end"
+                >
+                  +¥240,000
+                </text>
+
+                <!-- FAB -->
+                <circle cx="160" cy="330" r="22" fill="#10b981" filter="url(#f1)" />
+                <defs>
+                  <filter id="f1" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+                    <feOffset dx="0" dy="2" />
+                    <feComponentTransfer><feFuncA type="linear" slope="0.4" /></feComponentTransfer>
+                    <feMerge>
+                      <feMergeNode />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <line x1="160" y1="322" x2="160" y2="338" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+                <line x1="152" y1="330" x2="168" y2="330" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+
+                <!-- Bottom nav -->
+                <rect x="10" y="352" width="180" height="18" fill="#f8fafc" />
+                <text x="30" y="365" font-size="7" fill="#10b981" font-weight="700">ホーム</text>
+                <text x="72" y="365" font-size="7" fill="#94a3b8">口座</text>
+                <text x="108" y="365" font-size="7" fill="#94a3b8">レポート</text>
+                <text x="152" y="365" font-size="7" fill="#94a3b8">設定</text>
+              </svg>
+            </div>
+            <p>ホーム画面の右下にある緑色の「＋」ボタンをタップします。</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step">
+            <div class="step-badge"><span class="step-num">2</span>STEP</div>
+            <h3>金額とカテゴリを選ぶ</h3>
+            <div class="step-phone">
+              <!-- スマホSVG Step2 -->
+              <svg
+                width="200"
+                height="380"
+                viewBox="0 0 200 380"
+                xmlns="http://www.w3.org/2000/svg"
+                style="filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15))"
+              >
+                <rect x="4" y="4" width="192" height="372" rx="28" fill="#1e293b" />
+                <rect x="10" y="10" width="180" height="360" rx="22" fill="#ffffff" />
+                <rect x="72" y="14" width="56" height="10" rx="5" fill="#1e293b" />
+                <text x="24" y="40" font-size="9" font-family="sans-serif" fill="#334155" font-weight="700">9:42</text>
+
+                <!-- Tabs -->
+                <rect x="20" y="52" width="160" height="26" rx="13" fill="#f1f5f9" />
+                <rect x="22" y="54" width="78" height="22" rx="11" fill="#ef4444" />
+                <text
+                  x="61"
+                  y="70"
+                  font-size="10"
+                  font-family="sans-serif"
+                  fill="#fff"
+                  font-weight="700"
+                  text-anchor="middle"
+                >
+                  支出
+                </text>
+                <text
+                  x="140"
+                  y="70"
+                  font-size="10"
+                  font-family="sans-serif"
+                  fill="#94a3b8"
+                  font-weight="700"
+                  text-anchor="middle"
+                >
+                  収入
+                </text>
+
+                <!-- Amount display -->
+                <rect x="20" y="90" width="160" height="46" rx="10" fill="#fef2f2" />
+                <text x="30" y="108" font-size="8" font-family="sans-serif" fill="#94a3b8" font-weight="600">金額</text>
+                <text
+                  x="170"
+                  y="122"
+                  font-size="20"
+                  font-family="sans-serif"
+                  fill="#dc2626"
+                  font-weight="800"
+                  text-anchor="end"
+                >
+                  ¥1,280
+                </text>
+
+                <!-- Category chips -->
+                <text x="24" y="152" font-size="9" font-family="sans-serif" fill="#64748b" font-weight="600">
+                  カテゴリ
+                </text>
+                <rect x="22" y="158" width="46" height="20" rx="10" fill="#ef4444" />
+                <text x="45" y="171" font-size="8" fill="#fff" font-weight="700" text-anchor="middle">🍱食費</text>
+                <rect x="72" y="158" width="46" height="20" rx="10" fill="#f1f5f9" />
+                <text x="95" y="171" font-size="8" fill="#64748b" font-weight="700" text-anchor="middle">🚃交通</text>
+                <rect x="122" y="158" width="46" height="20" rx="10" fill="#f1f5f9" />
+                <text x="145" y="171" font-size="8" fill="#64748b" font-weight="700" text-anchor="middle">🎮娯楽</text>
+
+                <!-- Keypad -->
+                <g font-family="sans-serif" font-weight="700" font-size="14" fill="#0f172a" text-anchor="middle">
+                  <rect x="20" y="192" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="44" y="214">1</text>
+                  <rect x="76" y="192" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="100" y="214">2</text>
+                  <rect x="132" y="192" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="156" y="214">3</text>
+
+                  <rect x="20" y="232" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="44" y="254">4</text>
+                  <rect x="76" y="232" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="100" y="254">5</text>
+                  <rect x="132" y="232" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="156" y="254">6</text>
+
+                  <rect x="20" y="272" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="44" y="294">7</text>
+                  <rect x="76" y="272" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="100" y="294">8</text>
+                  <rect x="132" y="272" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="156" y="294">9</text>
+
+                  <rect x="20" y="312" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="44" y="334" font-size="12">🎤</text>
+                  <rect x="76" y="312" width="48" height="34" rx="8" fill="#f8fafc" />
+                  <text x="100" y="334">0</text>
+                  <rect x="132" y="312" width="48" height="34" rx="8" fill="#10b981" />
+                  <text x="156" y="334" fill="#fff" font-size="11">保存</text>
+                </g>
+              </svg>
+            </div>
+            <p>数字キーで金額を入力し、上部からカテゴリを選択します。</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step">
+            <div class="step-badge"><span class="step-num">3</span>STEP</div>
+            <h3>保存して完了</h3>
+            <div class="step-phone">
+              <!-- スマホSVG Step3 -->
+              <svg
+                width="200"
+                height="380"
+                viewBox="0 0 200 380"
+                xmlns="http://www.w3.org/2000/svg"
+                style="filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15))"
+              >
+                <rect x="4" y="4" width="192" height="372" rx="28" fill="#1e293b" />
+                <rect x="10" y="10" width="180" height="360" rx="22" fill="#ffffff" />
+                <rect x="72" y="14" width="56" height="10" rx="5" fill="#1e293b" />
+                <text x="24" y="40" font-size="9" font-family="sans-serif" fill="#334155" font-weight="700">9:42</text>
+
+                <!-- Big check -->
+                <circle cx="100" cy="150" r="44" fill="#d1fae5" />
+                <circle cx="100" cy="150" r="32" fill="#10b981" />
+                <path
+                  d="M 86 150 L 96 160 L 116 140"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+
+                <text
+                  x="100"
+                  y="220"
+                  font-size="14"
+                  font-family="sans-serif"
+                  fill="#0f172a"
+                  font-weight="800"
+                  text-anchor="middle"
+                >
+                  保存しました
+                </text>
+                <text x="100" y="240" font-size="10" font-family="sans-serif" fill="#64748b" text-anchor="middle">
+                  記録が正常に追加されました
+                </text>
+
+                <!-- Detail card -->
+                <rect x="24" y="260" width="152" height="70" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+                <text x="34" y="278" font-size="9" font-family="sans-serif" fill="#94a3b8">カテゴリ</text>
+                <text
+                  x="166"
+                  y="278"
+                  font-size="9"
+                  font-family="sans-serif"
+                  fill="#0f172a"
+                  font-weight="700"
+                  text-anchor="end"
+                >
+                  🍱 食費
+                </text>
+                <text x="34" y="296" font-size="9" font-family="sans-serif" fill="#94a3b8">金額</text>
+                <text
+                  x="166"
+                  y="296"
+                  font-size="9"
+                  font-family="sans-serif"
+                  fill="#dc2626"
+                  font-weight="800"
+                  text-anchor="end"
+                >
+                  -¥1,280
+                </text>
+                <text x="34" y="314" font-size="9" font-family="sans-serif" fill="#94a3b8">日付</text>
+                <text
+                  x="166"
+                  y="314"
+                  font-size="9"
+                  font-family="sans-serif"
+                  fill="#0f172a"
+                  font-weight="700"
+                  text-anchor="end"
+                >
+                  2026/07/03
+                </text>
+
+                <!-- OK button -->
+                <rect x="24" y="342" width="152" height="20" rx="10" fill="#10b981" />
+                <text
+                  x="100"
+                  y="355"
+                  font-size="10"
+                  font-family="sans-serif"
+                  fill="#fff"
+                  font-weight="700"
+                  text-anchor="middle"
+                >
+                  ホームに戻る
+                </text>
+              </svg>
+            </div>
+            <p>「保存」をタップすると即座に反映されます。取消も1タップで可能です。</p>
+          </div>
+        </div>
+
+        <div class="callout tips">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <div class="callout-title">音声入力にも対応！</div>
+            <div class="callout-text">
+              マイクボタン🎤から「コンビニで500円」のように話すだけで、金額とカテゴリを自動判別して入力できます。
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. 預金口座の管理 ============ -->
+    <section id="accounts">
+      <div class="container">
+        <div class="num-wrap"><span class="num">03 &nbsp;ACCOUNTS</span></div>
+        <h2>預金口座の管理</h2>
+        <p class="section-lead">
+          複数の銀行口座・電子マネー・現金をひとつの画面で一元管理できます。総資産のバランスがひと目で分かります。
+        </p>
+
+        <div class="account-layout">
+          <!-- 口座一覧 SVG -->
+          <div style="display: flex; justify-content: center">
+            <svg
+              width="280"
+              height="500"
+              viewBox="0 0 280 500"
+              xmlns="http://www.w3.org/2000/svg"
+              style="filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.15))"
+            >
+              <rect x="4" y="4" width="272" height="492" rx="30" fill="#1e293b" />
+              <rect x="10" y="10" width="260" height="480" rx="24" fill="#ffffff" />
+              <rect x="106" y="14" width="68" height="12" rx="6" fill="#1e293b" />
+
+              <text x="30" y="48" font-size="10" font-family="sans-serif" fill="#334155" font-weight="700">9:41</text>
+              <text
+                x="250"
+                y="48"
+                font-size="9"
+                font-family="sans-serif"
+                fill="#334155"
+                font-weight="700"
+                text-anchor="end"
+              >
+                📶 100%
+              </text>
+
+              <!-- Title -->
+              <text x="30" y="80" font-size="18" font-family="sans-serif" fill="#0f172a" font-weight="800">
+                口座一覧
+              </text>
+              <text x="250" y="80" font-size="14" fill="#10b981" text-anchor="end" font-weight="800">＋</text>
+
+              <!-- Total balance card -->
+              <rect x="20" y="98" width="240" height="80" rx="16" fill="#10b981" />
+              <text x="34" y="118" font-size="10" font-family="sans-serif" fill="#d1fae5" font-weight="600">
+                合計残高
+              </text>
+              <text x="34" y="150" font-size="26" font-family="sans-serif" fill="#fff" font-weight="800">¥726,200</text>
+              <text x="34" y="168" font-size="9" font-family="sans-serif" fill="#d1fae5">前月比 +¥54,200</text>
+              <!-- Deco circles -->
+              <circle cx="240" cy="115" r="22" fill="#059669" opacity="0.6" />
+              <circle cx="255" cy="155" r="16" fill="#059669" opacity="0.4" />
+
+              <!-- Account list -->
+              <text x="30" y="204" font-size="10" font-family="sans-serif" fill="#64748b" font-weight="700">
+                管理中の口座 (4)
+              </text>
+
+              <!-- Item 1: みずほ -->
+              <rect x="20" y="214" width="240" height="52" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+              <rect x="30" y="224" width="32" height="32" rx="8" fill="#1e3a8a" />
+              <text x="46" y="245" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">M</text>
+              <text x="72" y="235" font-size="11" font-family="sans-serif" fill="#0f172a" font-weight="700">
+                みずほ銀行
+              </text>
+              <text x="72" y="250" font-size="8" font-family="sans-serif" fill="#94a3b8">普通預金 ****1234</text>
+              <text
+                x="250"
+                y="245"
+                font-size="12"
+                font-family="sans-serif"
+                fill="#0f172a"
+                font-weight="800"
+                text-anchor="end"
+              >
+                ¥523,400
+              </text>
+
+              <!-- Item 2: ゆうちょ -->
+              <rect x="20" y="274" width="240" height="52" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+              <rect x="30" y="284" width="32" height="32" rx="8" fill="#dc2626" />
+              <text x="46" y="305" font-size="11" fill="#fff" text-anchor="middle" font-weight="800">〒</text>
+              <text x="72" y="295" font-size="11" font-family="sans-serif" fill="#0f172a" font-weight="700">
+                ゆうちょ銀行
+              </text>
+              <text x="72" y="310" font-size="8" font-family="sans-serif" fill="#94a3b8">通常貯金 ****5678</text>
+              <text
+                x="250"
+                y="305"
+                font-size="12"
+                font-family="sans-serif"
+                fill="#0f172a"
+                font-weight="800"
+                text-anchor="end"
+              >
+                ¥182,000
+              </text>
+
+              <!-- Item 3: PayPay -->
+              <rect x="20" y="334" width="240" height="52" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+              <rect x="30" y="344" width="32" height="32" rx="8" fill="#ef4444" />
+              <text x="46" y="365" font-size="9" fill="#fff" text-anchor="middle" font-weight="800">Pay</text>
+              <text x="72" y="355" font-size="11" font-family="sans-serif" fill="#0f172a" font-weight="700">
+                PayPay残高
+              </text>
+              <text x="72" y="370" font-size="8" font-family="sans-serif" fill="#94a3b8">電子マネー</text>
+              <text
+                x="250"
+                y="365"
+                font-size="12"
+                font-family="sans-serif"
+                fill="#0f172a"
+                font-weight="800"
+                text-anchor="end"
+              >
+                ¥8,500
+              </text>
+
+              <!-- Item 4: 現金 -->
+              <rect x="20" y="394" width="240" height="52" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+              <rect x="30" y="404" width="32" height="32" rx="8" fill="#f59e0b" />
+              <text x="46" y="425" font-size="14" text-anchor="middle">💴</text>
+              <text x="72" y="415" font-size="11" font-family="sans-serif" fill="#0f172a" font-weight="700">現金</text>
+              <text x="72" y="430" font-size="8" font-family="sans-serif" fill="#94a3b8">お財布</text>
+              <text
+                x="250"
+                y="425"
+                font-size="12"
+                font-family="sans-serif"
+                fill="#0f172a"
+                font-weight="800"
+                text-anchor="end"
+              >
+                ¥12,300
+              </text>
+
+              <!-- Add button -->
+              <rect
+                x="20"
+                y="456"
+                width="240"
+                height="24"
+                rx="12"
+                fill="none"
+                stroke="#10b981"
+                stroke-width="1.5"
+                stroke-dasharray="4 3"
+              />
+              <text
+                x="140"
+                y="472"
+                font-size="10"
+                font-family="sans-serif"
+                fill="#059669"
+                font-weight="700"
+                text-anchor="middle"
+              >
+                ＋ 口座を追加
+              </text>
+            </svg>
+          </div>
+
+          <!-- 手順リスト -->
+          <div class="account-steps">
+            <h3 style="margin-bottom: 20px">口座を登録する手順</h3>
+            <ol>
+              <li>
+                <div>
+                  <strong>メニューから「口座管理」を開く</strong>
+                  <p style="margin: 4px 0 0; font-size: 0.9rem; color: var(--gray-600)">
+                    下部ナビの「口座」タブをタップします。
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>「＋口座を追加」をタップ</strong>
+                  <p style="margin: 4px 0 0; font-size: 0.9rem; color: var(--gray-600)">
+                    画面下の追加ボタンを選択します。
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>銀行名または電子マネー名を選択</strong>
+                  <p style="margin: 4px 0 0; font-size: 0.9rem; color: var(--gray-600)">
+                    主要銀行、電子マネー、証券口座から選べます。
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>初期残高を入力して保存</strong>
+                  <p style="margin: 4px 0 0; font-size: 0.9rem; color: var(--gray-600)">
+                    現在の残高を入力すれば登録完了です。
+                  </p>
+                </div>
+              </li>
+            </ol>
+
+            <div class="callout info" style="margin-top: 24px">
+              <div class="callout-icon">i</div>
+              <div class="callout-body">
+                <div class="callout-title">口座間の振替も1タップ</div>
+                <div class="callout-text">
+                  「振替」機能を使えば、A口座からB口座への移動を、支出・収入として二重計上せずに記録できます。
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. 支出・収入の記録 ============ -->
+    <section id="records" class="alt">
+      <div class="container">
+        <div class="num-wrap"><span class="num">04 &nbsp;EXPENSE / INCOME</span></div>
+        <h2>支出・収入の記録</h2>
+        <p class="section-lead">
+          支出と収入はワンタップで切り替え可能。カテゴリはあらかじめ用意されているものから選ぶだけで OK です。
+        </p>
+
+        <div class="ei-grid">
+          <!-- 支出 -->
+          <div class="ei-card">
+            <div class="ei-header">
+              <div class="ei-arrow expense">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                  <path
+                    d="M12 4 v14 M6 12 l6 6 l6 -6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 class="ei-title">支出の記録</h3>
+                <p class="ei-sub">お金が出ていく取引</p>
+              </div>
+            </div>
+            <div class="cat-tags">
+              <span class="cat-tag expense">🍱 食費</span>
+              <span class="cat-tag expense">🚃 交通費</span>
+              <span class="cat-tag expense">💡 光熱費</span>
+              <span class="cat-tag expense">🎮 娯楽</span>
+              <span class="cat-tag expense">💊 医療</span>
+              <span class="cat-tag expense">🏠 住居</span>
+              <span class="cat-tag expense">👕 衣服</span>
+              <span class="cat-tag expense">📚 教育</span>
+              <span class="cat-tag expense">✏️ その他</span>
+            </div>
+            <p style="margin: 0; color: var(--gray-600); font-size: 0.92rem">
+              支出タブから金額を入力し、上記カテゴリのいずれかを選んで保存します。カテゴリは追加・並び替えも自由です。
+            </p>
+          </div>
+
+          <!-- 収入 -->
+          <div class="ei-card">
+            <div class="ei-header">
+              <div class="ei-arrow income">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                  <path
+                    d="M12 20 v-14 M6 12 l6 -6 l6 6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 class="ei-title">収入の記録</h3>
+                <p class="ei-sub">お金が入ってくる取引</p>
+              </div>
+            </div>
+            <div class="cat-tags">
+              <span class="cat-tag income">💼 給与</span>
+              <span class="cat-tag income">🎁 ボーナス</span>
+              <span class="cat-tag income">💻 副業</span>
+              <span class="cat-tag income">🪙 お小遣い</span>
+              <span class="cat-tag income">📈 投資益</span>
+              <span class="cat-tag income">↩️ 返金</span>
+              <span class="cat-tag income">✏️ その他</span>
+            </div>
+            <p style="margin: 0; color: var(--gray-600); font-size: 0.92rem">
+              収入タブに切り替えて、金額とカテゴリを選択。定期的な給与は「繰り返し登録」で自動化できます。
+            </p>
+          </div>
+        </div>
+
+        <!-- 画面プレビュー -->
+        <div class="ei-screens">
+          <!-- 支出画面 -->
+          <div>
+            <svg
+              width="200"
+              height="360"
+              viewBox="0 0 200 360"
+              xmlns="http://www.w3.org/2000/svg"
+              style="filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.12))"
+            >
+              <rect x="4" y="4" width="192" height="352" rx="28" fill="#1e293b" />
+              <rect x="10" y="10" width="180" height="340" rx="22" fill="#ffffff" />
+              <rect x="72" y="14" width="56" height="10" rx="5" fill="#1e293b" />
+              <text x="24" y="42" font-size="10" font-family="sans-serif" fill="#334155" font-weight="700">
+                支出を記録
+              </text>
+              <text x="176" y="42" font-size="9" fill="#94a3b8" text-anchor="end">×</text>
+
+              <rect x="20" y="56" width="160" height="26" rx="13" fill="#fef2f2" />
+              <rect x="22" y="58" width="78" height="22" rx="11" fill="#ef4444" />
+              <text x="61" y="74" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">支出</text>
+              <text x="140" y="74" font-size="10" fill="#94a3b8" font-weight="700" text-anchor="middle">収入</text>
+
+              <text x="100" y="112" font-size="10" fill="#94a3b8" text-anchor="middle">金額</text>
+              <text x="100" y="140" font-size="24" fill="#dc2626" font-weight="800" text-anchor="middle">¥3,450</text>
+              <line x1="40" y1="150" x2="160" y2="150" stroke="#fecaca" stroke-width="2" />
+
+              <text x="24" y="178" font-size="9" fill="#64748b" font-weight="700">カテゴリ</text>
+              <rect x="22" y="184" width="42" height="22" rx="11" fill="#ef4444" />
+              <text x="43" y="199" font-size="8" fill="#fff" font-weight="700" text-anchor="middle">🍱食費</text>
+              <rect x="68" y="184" width="42" height="22" rx="11" fill="#fee2e2" />
+              <text x="89" y="199" font-size="8" fill="#b91c1c" font-weight="700" text-anchor="middle">🚃交通</text>
+              <rect x="114" y="184" width="42" height="22" rx="11" fill="#fee2e2" />
+              <text x="135" y="199" font-size="8" fill="#b91c1c" font-weight="700" text-anchor="middle">💡光熱</text>
+
+              <text x="24" y="228" font-size="9" fill="#64748b" font-weight="700">支払口座</text>
+              <rect x="22" y="234" width="156" height="24" rx="8" fill="#f8fafc" stroke="#e2e8f0" />
+              <text x="30" y="250" font-size="9" fill="#0f172a" font-weight="700">みずほ銀行</text>
+              <text x="170" y="250" font-size="9" fill="#94a3b8" text-anchor="end">▼</text>
+
+              <text x="24" y="278" font-size="9" fill="#64748b" font-weight="700">メモ</text>
+              <rect x="22" y="284" width="156" height="24" rx="8" fill="#f8fafc" stroke="#e2e8f0" />
+              <text x="30" y="300" font-size="8" fill="#94a3b8">スーパーでまとめ買い</text>
+
+              <rect x="22" y="320" width="156" height="24" rx="12" fill="#10b981" />
+              <text x="100" y="335" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">保存する</text>
+            </svg>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--gray-600); margin: 12px 0 0">
+              ▲ 支出の記録画面
+            </p>
+          </div>
+
+          <!-- 収入画面 -->
+          <div>
+            <svg
+              width="200"
+              height="360"
+              viewBox="0 0 200 360"
+              xmlns="http://www.w3.org/2000/svg"
+              style="filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.12))"
+            >
+              <rect x="4" y="4" width="192" height="352" rx="28" fill="#1e293b" />
+              <rect x="10" y="10" width="180" height="340" rx="22" fill="#ffffff" />
+              <rect x="72" y="14" width="56" height="10" rx="5" fill="#1e293b" />
+              <text x="24" y="42" font-size="10" font-family="sans-serif" fill="#334155" font-weight="700">
+                収入を記録
+              </text>
+              <text x="176" y="42" font-size="9" fill="#94a3b8" text-anchor="end">×</text>
+
+              <rect x="20" y="56" width="160" height="26" rx="13" fill="#ecfdf5" />
+              <rect x="22" y="58" width="78" height="22" rx="11" fill="#f1f5f9" />
+              <text x="61" y="74" font-size="10" fill="#94a3b8" font-weight="700" text-anchor="middle">支出</text>
+              <rect x="100" y="58" width="78" height="22" rx="11" fill="#10b981" />
+              <text x="140" y="74" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">収入</text>
+
+              <text x="100" y="112" font-size="10" fill="#94a3b8" text-anchor="middle">金額</text>
+              <text x="100" y="140" font-size="24" fill="#059669" font-weight="800" text-anchor="middle">¥240,000</text>
+              <line x1="40" y1="150" x2="160" y2="150" stroke="#a7f3d0" stroke-width="2" />
+
+              <text x="24" y="178" font-size="9" fill="#64748b" font-weight="700">カテゴリ</text>
+              <rect x="22" y="184" width="42" height="22" rx="11" fill="#10b981" />
+              <text x="43" y="199" font-size="8" fill="#fff" font-weight="700" text-anchor="middle">💼給与</text>
+              <rect x="68" y="184" width="46" height="22" rx="11" fill="#d1fae5" />
+              <text x="91" y="199" font-size="8" fill="#059669" font-weight="700" text-anchor="middle">🎁賞与</text>
+              <rect x="118" y="184" width="42" height="22" rx="11" fill="#d1fae5" />
+              <text x="139" y="199" font-size="8" fill="#059669" font-weight="700" text-anchor="middle">💻副業</text>
+
+              <text x="24" y="228" font-size="9" fill="#64748b" font-weight="700">入金口座</text>
+              <rect x="22" y="234" width="156" height="24" rx="8" fill="#f8fafc" stroke="#e2e8f0" />
+              <text x="30" y="250" font-size="9" fill="#0f172a" font-weight="700">みずほ銀行</text>
+              <text x="170" y="250" font-size="9" fill="#94a3b8" text-anchor="end">▼</text>
+
+              <text x="24" y="278" font-size="9" fill="#64748b" font-weight="700">繰り返し</text>
+              <rect x="22" y="284" width="156" height="24" rx="8" fill="#ecfdf5" stroke="#a7f3d0" />
+              <text x="30" y="300" font-size="8" fill="#059669" font-weight="700">毎月25日 自動記録 ✓</text>
+
+              <rect x="22" y="320" width="156" height="24" rx="12" fill="#10b981" />
+              <text x="100" y="335" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">保存する</text>
+            </svg>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--gray-600); margin: 12px 0 0">
+              ▲ 収入の記録画面
+            </p>
+          </div>
+        </div>
+
+        <div class="callout tips">
+          <div class="callout-icon">📷</div>
+          <div class="callout-body">
+            <div class="callout-title">レシート撮影でOCR自動入力</div>
+            <div class="callout-text">
+              カメラアイコンをタップしてレシートを撮影すると、日付・金額・店名を自動で読み取ります。買い物が多い日にも安心です。
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 5. レポート ============ -->
+    <section id="report">
+      <div class="container">
+        <div class="num-wrap"><span class="num">05 &nbsp;REPORT</span></div>
+        <h2>レポートで振り返り</h2>
+        <p class="section-lead">
+          記録したデータは、月次レポート画面で自動集計されます。カテゴリ別支出、月次収支、前月比較などが一目でわかります。
+        </p>
+
+        <div class="report-layout">
+          <div class="report-charts">
+            <h3 style="margin-bottom: 16px">2026年7月の支出構成</h3>
+
+            <!-- 円グラフ -->
+            <div style="display: flex; justify-content: center">
+              <svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                <!-- Base circle -->
+                <g transform="translate(120,120)">
+                  <!-- 食費 35% = 126deg -->
+                  <path d="M 0 0 L 0 -90 A 90 90 0 0 1 72.81 52.90 Z" fill="#ef4444" />
+                  <!-- 住居費 25% = 90deg (cum 60% = 216deg = -0.5878, -0.8090 x90) -->
+                  <path d="M 0 0 L 72.81 52.90 A 90 90 0 0 1 -52.90 72.81 Z" fill="#3b82f6" />
+                  <!-- 交通費 15% = 54deg (cum 75% = 270deg -> -90,0)-->
+                  <path d="M 0 0 L -52.90 72.81 A 90 90 0 0 1 -90 0 Z" fill="#f59e0b" />
+                  <!-- 娯楽 10% = 36deg (cum 85% = 306 => -72.81,-52.90) -->
+                  <path d="M 0 0 L -90 0 A 90 90 0 0 1 -52.90 -72.81 Z" fill="#a855f7" />
+                  <!-- その他 15% (cum 100% => 0,-90) -->
+                  <path d="M 0 0 L -52.90 -72.81 A 90 90 0 0 1 0 -90 Z" fill="#64748b" />
+
+                  <!-- Donut center -->
+                  <circle r="42" fill="#fff" />
+                  <text y="-4" font-size="10" fill="#94a3b8" text-anchor="middle" font-family="sans-serif">
+                    支出合計
+                  </text>
+                  <text
+                    y="16"
+                    font-size="15"
+                    fill="#0f172a"
+                    font-weight="800"
+                    text-anchor="middle"
+                    font-family="sans-serif"
+                  >
+                    ¥185,800
+                  </text>
+                </g>
+              </svg>
+            </div>
+
+            <div class="legend">
+              <div class="legend-item"><span class="legend-dot" style="background: #ef4444"></span>食費 35%</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #3b82f6"></span>住居費 25%</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #f59e0b"></span>交通費 15%</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #a855f7"></span>娯楽 10%</div>
+              <div class="legend-item"><span class="legend-dot" style="background: #64748b"></span>その他 15%</div>
+            </div>
+          </div>
+
+          <div class="report-charts">
+            <h3 style="margin-bottom: 16px">過去6ヶ月の収支バランス</h3>
+            <svg width="100%" height="240" viewBox="0 0 360 240" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grid lines -->
+              <line x1="30" y1="20" x2="350" y2="20" stroke="#e2e8f0" stroke-dasharray="2 3" />
+              <line x1="30" y1="70" x2="350" y2="70" stroke="#e2e8f0" stroke-dasharray="2 3" />
+              <line x1="30" y1="120" x2="350" y2="120" stroke="#e2e8f0" stroke-dasharray="2 3" />
+              <line x1="30" y1="170" x2="350" y2="170" stroke="#e2e8f0" stroke-dasharray="2 3" />
+
+              <!-- Y labels -->
+              <text x="26" y="24" font-size="9" fill="#94a3b8" text-anchor="end">30万</text>
+              <text x="26" y="74" font-size="9" fill="#94a3b8" text-anchor="end">20万</text>
+              <text x="26" y="124" font-size="9" fill="#94a3b8" text-anchor="end">10万</text>
+              <text x="26" y="174" font-size="9" fill="#94a3b8" text-anchor="end">0</text>
+
+              <!-- Bars: 6 months. width=20, gap between pair=4, group gap=32 -->
+              <!-- 2月 -->
+              <g transform="translate(50,0)">
+                <rect x="0" y="70" width="18" height="100" rx="3" fill="#10b981" />
+                <rect x="22" y="90" width="18" height="80" rx="3" fill="#ef4444" />
+                <text x="20" y="188" font-size="9" fill="#64748b" text-anchor="middle">2月</text>
+              </g>
+              <!-- 3月 -->
+              <g transform="translate(102,0)">
+                <rect x="0" y="60" width="18" height="110" rx="3" fill="#10b981" />
+                <rect x="22" y="85" width="18" height="85" rx="3" fill="#ef4444" />
+                <text x="20" y="188" font-size="9" fill="#64748b" text-anchor="middle">3月</text>
+              </g>
+              <!-- 4月 -->
+              <g transform="translate(154,0)">
+                <rect x="0" y="72" width="18" height="98" rx="3" fill="#10b981" />
+                <rect x="22" y="72" width="18" height="98" rx="3" fill="#ef4444" />
+                <text x="20" y="188" font-size="9" fill="#64748b" text-anchor="middle">4月</text>
+              </g>
+              <!-- 5月 -->
+              <g transform="translate(206,0)">
+                <rect x="0" y="50" width="18" height="120" rx="3" fill="#10b981" />
+                <rect x="22" y="95" width="18" height="75" rx="3" fill="#ef4444" />
+                <text x="20" y="188" font-size="9" fill="#64748b" text-anchor="middle">5月</text>
+              </g>
+              <!-- 6月 -->
+              <g transform="translate(258,0)">
+                <rect x="0" y="65" width="18" height="105" rx="3" fill="#10b981" />
+                <rect x="22" y="82" width="18" height="88" rx="3" fill="#ef4444" />
+                <text x="20" y="188" font-size="9" fill="#64748b" text-anchor="middle">6月</text>
+              </g>
+              <!-- 7月 -->
+              <g transform="translate(310,0)">
+                <rect x="0" y="45" width="18" height="125" rx="3" fill="#10b981" />
+                <rect x="22" y="78" width="18" height="92" rx="3" fill="#ef4444" />
+                <text x="20" y="188" font-size="9" fill="#64748b" text-anchor="middle">7月</text>
+              </g>
+
+              <!-- Baseline -->
+              <line x1="30" y1="170" x2="350" y2="170" stroke="#cbd5e1" stroke-width="1" />
+
+              <!-- Legend -->
+              <rect x="200" y="210" width="10" height="10" rx="2" fill="#10b981" />
+              <text x="215" y="219" font-size="9" fill="#334155">収入</text>
+              <rect x="250" y="210" width="10" height="10" rx="2" fill="#ef4444" />
+              <text x="265" y="219" font-size="9" fill="#334155">支出</text>
+            </svg>
+
+            <div style="display: flex; justify-content: space-around; margin-top: 16px; text-align: center">
+              <div>
+                <div style="font-size: 0.8rem; color: var(--gray-600)">今月の収入</div>
+                <div style="font-weight: 800; color: var(--green-dark); font-size: 1.1rem">¥240,000</div>
+              </div>
+              <div>
+                <div style="font-size: 0.8rem; color: var(--gray-600)">今月の支出</div>
+                <div style="font-weight: 800; color: #dc2626; font-size: 1.1rem">¥185,800</div>
+              </div>
+              <div>
+                <div style="font-size: 0.8rem; color: var(--gray-600)">収支差額</div>
+                <div style="font-weight: 800; color: #0f172a; font-size: 1.1rem">+¥54,200</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout info" style="margin-top: 32px">
+          <div class="callout-icon">📊</div>
+          <div class="callout-body">
+            <div class="callout-title">レポートは自動生成されます</div>
+            <div class="callout-text">
+              記録を入力するたびにグラフはリアルタイムで更新されます。月末を待たずに「今月あといくら使えるか」を把握できます。
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 6. FAQ ============ -->
+    <section id="faq" class="alt">
+      <div class="container">
+        <div class="num-wrap"><span class="num">06 &nbsp;FAQ</span></div>
+        <h2>よくある質問</h2>
+        <p class="section-lead">ユーザーの方から特に多く寄せられる質問をまとめました。</p>
+
+        <div class="faq-list">
+          <div class="faq">
+            <div class="faq-q">
+              <span class="qbadge">Q</span><span>データはクラウドにバックアップされますか？</span>
+            </div>
+            <div class="faq-a">
+              <span class="abadge">A</span
+              ><span
+                >はい。ログイン中のアカウントに紐づけて、自動でクラウドにバックアップされます。機種変更時もアカウント再ログインでデータを引き継げます。</span
+              >
+            </div>
+          </div>
+          <div class="faq">
+            <div class="faq-q"><span class="qbadge">Q</span><span>複数デバイスで同期できますか？</span></div>
+            <div class="faq-a">
+              <span class="abadge">A</span
+              ><span
+                >可能です。スマホとタブレットなど、同じアカウントでログインしていれば自動で同期されます。オフライン中の変更もオンライン復帰時に反映されます。</span
+              >
+            </div>
+          </div>
+          <div class="faq">
+            <div class="faq-q"><span class="qbadge">Q</span><span>有料プランと無料プランの違いは？</span></div>
+            <div class="faq-a">
+              <span class="abadge">A</span
+              ><span
+                >無料版は登録できる口座数が3つまでで、レポートは直近3ヶ月分を閲覧可能です。有料版（月額
+                ¥480）は口座数無制限、レポートも全期間、CSVエクスポートやレシートOCRが使えます。</span
+              >
+            </div>
+          </div>
+          <div class="faq">
+            <div class="faq-q"><span class="qbadge">Q</span><span>パスコードロックはできますか？</span></div>
+            <div class="faq-a">
+              <span class="abadge">A</span
+              ><span
+                >「設定 →
+                セキュリティ」から4桁パスコード、または顔認証・指紋認証によるロックを設定できます。起動時・バックグラウンド復帰時のロックが選べます。</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Footer ============ -->
+    <footer>
+      <nav class="footer-nav" aria-label="フッターメニュー">
+        <a href="#intro">ホーム</a>
+        <a href="#input">入力</a>
+        <a href="#accounts">口座</a>
+        <a href="#records">記録</a>
+        <a href="#report">レポート</a>
+        <a href="#faq">FAQ</a>
+        <a
+          class="manual-link"
+          href="https://www.genspark.ai/api/files/s/igcZWhpa?token=Z0FBQUFBQnFlc1J5WnBCWER0M2piNHlSZDFjZndRV1kzWGhWZWZhcjZPYUhpUVNmTEFrZHUtSWhpQ2h2ZlpoeVhxUFVkb3BwNFAwa05pcXN4MVQyZHM4WnJUQ3JTREttYjJTMGdUbUpxMk9lZWFBZXRIdmI5LUZ3MUlUaFZKVHZVU28zTUFnN1V3Ym9fRHM5WWtYbGExb3NhRFY2RU1Qc2FFUjdCV1RkM3ZLaFJjRUF2XzBQZDJRS3E1Y2ZWdEFfMFVJVl9IZ1pES0NqYUNUZFdXaTljQkZPdVpCXzR1Q2t2d1FlWDkydzZDQ1V6cVhiZXRKUVQ2TTAteHhoN1VfQUV1elg0OWNVUHNyUXVQcDNNT1NRVmx0aWZ5UU55ZlVjbnc9PQ"
+          target="_blank"
+          rel="noopener"
+          title="使い方マニュアル（図・スクリーンショット付き）"
+        >
+          📖 使い方マニュアル <span class="badge-new">NEW</span>
+        </a>
+      </nav>
+      <div class="logo-mini">
+        <svg width="24" height="24" viewBox="0 0 40 40">
+          <rect x="4" y="8" width="32" height="26" rx="4" fill="#10b981" />
+          <polyline
+            points="10,26 16,22 22,24 28,18"
+            fill="none"
+            stroke="#fff"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        かんたん家計簿
+      </div>
+      <p>サポート: <a href="mailto:support@kakeibo-app.example.jp">support@kakeibo-app.example.jp</a></p>
+      <p>公式サイト: kakeibo-app.example.jp</p>
+      <p style="margin-top: 20px; opacity: 0.6">© 2026 かんたん家計簿 All rights reserved.</p>
+    </footer>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>

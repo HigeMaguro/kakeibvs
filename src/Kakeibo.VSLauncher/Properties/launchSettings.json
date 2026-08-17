@@ -1,0 +1,21 @@
+{
+  "profiles": {
+    "Kakeibo.VSLauncher": {
+      "commandName": "Project",
+      "workingDirectory": ".",
+      "environmentVariables": {
+        "APP_PORT": "9090",
+        "DB_PATH": "$(ProjectDir)data\\kakeibo.db"
+      }
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "workingDirectory": ".",
+      "environmentVariables": {
+        "APP_PORT": "9090",
+        "DB_PATH": "$(ProjectDir)data\\kakeibo.db"
+      },
+      "distributionName": ""
+    }
+  }
+}

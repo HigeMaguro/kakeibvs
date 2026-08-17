@@ -1,0 +1,1006 @@
+/**
+ * MyKakeibo - 家計簿アプリ メインスクリプト
+ * 自宅サーバー向け静的ウェブアプリ
+ */
+
+'use strict';
+
+// ===================================================
+// 定数・設定
+// ===================================================
+const API_BASE = 'tables';
+const TABLE_TX  = 'transactions';
+const TABLE_BDG = 'budgets';
+const ITEMS_PER_PAGE = 15;
+
+const EXPENSE_CATEGORIES_DEFAULT = ['食費','交通費','光熱費','通信費','日用品','医療費','娯楽','衣服','外食','教育','保険','住居','その他'];
+const INCOME_CATEGORIES_DEFAULT  = ['給与','副業','ボーナス','投資','その他収入'];
+
+const CATEGORY_ICONS = {
+  '食費':'🍚','交通費':'🚃','光熱費':'💡','通信費':'📱','日用品':'🧹',
+  '医療費':'💊','娯楽':'🎮','衣服':'👕','外食':'🍜','教育':'📚',
+  '保険':'🛡️','住居':'🏠','その他':'📦','給与':'💼','副業':'💻',
+  'ボーナス':'🎁','投資':'📈','その他収入':'💰'
+};
+
+// ===================================================
+// アプリケーション状態
+// ===================================================
+const state = {
+  currentPage: 'dashboard',
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth() + 1,
+  allTransactions: [],
+  allBudgets: [],
+  txPage: 1,
+  txFilter: { type: '', category: '', search: '' },
+  editingTxId: null,
+  deletingTxId: null,
+  editingBudgetId: null,
+  expenseCategories: [...EXPENSE_CATEGORIES_DEFAULT],
+  incomeCategories:  [...INCOME_CATEGORIES_DEFAULT],
+  inputType: 'expense',
+  charts: {},
+};
+
+// ===================================================
+// ユーティリティ
+// ===================================================
+function formatYen(amount) {
+  return '¥' + Number(amount).toLocaleString('ja-JP');
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${y}/${m}/${d}`;
+}
+
+function getMonthKey(y, m) {
+  return `${y}-${String(m).padStart(2,'0')}`;
+}
+
+function getMonthLabel(y, m) {
+  return `${y}年${m}月`;
+}
+
+function getCategoryIcon(cat) {
+  return CATEGORY_ICONS[cat] || '💴';
+}
+
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function showToast(message, type = 'success') {
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+  document.getElementById('toast-container').appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+async function apiGet(table, params = {}) {
+  const qs = new URLSearchParams({ limit: 500, ...params }).toString();
+  const res = await fetch(`${API_BASE}/${table}?${qs}`);
+  if (!res.ok) throw new Error('データ取得失敗');
+  return await res.json();
+}
+
+async function apiPost(table, data) {
+  const res = await fetch(`${API_BASE}/${table}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('登録失敗');
+  return await res.json();
+}
+
+async function apiPut(table, id, data) {
+  const res = await fetch(`${API_BASE}/${table}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('更新失敗');
+  return await res.json();
+}
+
+async function apiDelete(table, id) {
+  const res = await fetch(`${API_BASE}/${table}/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('削除失敗');
+}
+
+// ===================================================
+// データ読み込み
+// ===================================================
+async function loadAllData() {
+  try {
+    const [txRes, bdgRes] = await Promise.all([
+      apiGet(TABLE_TX),
+      apiGet(TABLE_BDG),
+    ]);
+    state.allTransactions = txRes.data || [];
+    state.allBudgets      = bdgRes.data || [];
+    // ユーザー追加カテゴリをマージ
+    state.allTransactions.forEach(tx => {
+      if (tx.type === 'expense' && !state.expenseCategories.includes(tx.category)) {
+        state.expenseCategories.push(tx.category);
+      }
+      if (tx.type === 'income' && !state.incomeCategories.includes(tx.category)) {
+        state.incomeCategories.push(tx.category);
+      }
+    });
+  } catch (e) {
+    showToast('データの読み込みに失敗しました', 'error');
+  }
+}
+
+// ===================================================
+// ページナビゲーション
+// ===================================================
+function navigateTo(pageName, skipHistory = false) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+  const target = document.getElementById(`page-${pageName}`);
+  if (target) target.classList.add('active');
+
+  const navLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+  if (navLink) navLink.classList.add('active');
+
+  const titles = {
+    dashboard:    'ダッシュボード',
+    transactions: '収支一覧',
+    input:        '収支を入力',
+    budget:       '予算管理',
+    analysis:     '分析',
+    accounts:     '預金口座管理',
+  };
+  document.getElementById('page-title').textContent = titles[pageName] || '';
+  state.currentPage = pageName;
+
+  // モバイルサイドバー閉じる
+  closeMobileSidebar();
+
+  // ページ固有の初期化
+  refreshCurrentPage();
+}
+
+function refreshCurrentPage() {
+  switch (state.currentPage) {
+    case 'dashboard':    renderDashboard(); break;
+    case 'transactions': renderTransactions(); break;
+    case 'input':        renderInputForm(); break;
+    case 'budget':       renderBudget(); break;
+    case 'analysis':     renderAnalysis(); break;
+    case 'accounts':     if (typeof renderAccountsPage === 'function') renderAccountsPage(); break;
+  }
+}
+
+// ===================================================
+// 月選択
+// ===================================================
+function updateMonthLabel() {
+  document.getElementById('current-month-label').textContent =
+    getMonthLabel(state.currentYear, state.currentMonth);
+}
+
+function changeMonth(delta) {
+  let m = state.currentMonth + delta;
+  let y = state.currentYear;
+  if (m > 12) { m = 1; y++; }
+  if (m < 1)  { m = 12; y--; }
+  state.currentMonth = m;
+  state.currentYear  = y;
+  updateMonthLabel();
+  refreshCurrentPage();
+}
+
+// ===================================================
+// ダッシュボード
+// ===================================================
+function getMonthTransactions(year, month) {
+  const key = getMonthKey(year, month);
+  return state.allTransactions.filter(tx => tx.date && tx.date.startsWith(key));
+}
+
+function renderDashboard() {
+  const txs = getMonthTransactions(state.currentYear, state.currentMonth);
+
+  const income  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0);
+  const balance = income - expense;
+
+  document.getElementById('dash-income').textContent  = formatYen(income);
+  document.getElementById('dash-expense').textContent = formatYen(expense);
+  const balEl = document.getElementById('dash-balance');
+  balEl.textContent = formatYen(balance);
+  balEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+
+  renderCategoryChart(txs);
+  renderTrendChart();
+  renderRecentTransactions(txs);
+}
+
+function renderRecentTransactions(txs) {
+  const sorted = [...txs].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 7);
+  const container = document.getElementById('recent-transactions');
+  const noMsg = document.getElementById('no-recent-msg');
+
+  if (sorted.length === 0) {
+    container.innerHTML = '';
+    noMsg.style.display = 'block';
+    return;
+  }
+  noMsg.style.display = 'none';
+
+  container.innerHTML = sorted.map(tx => `
+    <div class="transaction-item">
+      <div class="tx-icon ${tx.type}">${getCategoryIcon(tx.category)}</div>
+      <div class="tx-details">
+        <div class="tx-category">${tx.category}</div>
+        <div class="tx-meta">
+          <span>${formatDate(tx.date)}</span>
+          ${tx.memo ? `<span>・${tx.memo}</span>` : ''}
+        </div>
+      </div>
+      <div class="tx-amount ${tx.type}">
+        ${tx.type === 'income' ? '+' : '-'}${formatYen(tx.amount)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCategoryChart(txs) {
+  const expenses = txs.filter(t => t.type === 'expense');
+  const catMap = {};
+  expenses.forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + Number(t.amount); });
+
+  const labels = Object.keys(catMap);
+  const data   = Object.values(catMap);
+  const noDataMsg = document.getElementById('no-category-data');
+
+  if (labels.length === 0) {
+    noDataMsg.style.display = 'block';
+    if (state.charts.category) { state.charts.category.destroy(); state.charts.category = null; }
+    return;
+  }
+  noDataMsg.style.display = 'none';
+
+  const colors = generateColors(labels.length);
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+
+  if (state.charts.category) state.charts.category.destroy();
+  state.charts.category = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { family: 'Noto Sans JP', size: 12 }, padding: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${formatYen(ctx.raw)} (${Math.round(ctx.parsed / data.reduce((a,b)=>a+b,0) * 100)}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTrendChart() {
+  const months = [];
+  const incomeData = [];
+  const expenseData = [];
+
+  for (let i = 5; i >= 0; i--) {
+    let m = state.currentMonth - i;
+    let y = state.currentYear;
+    while (m < 1) { m += 12; y--; }
+    const txs = getMonthTransactions(y, m);
+    months.push(`${m}月`);
+    incomeData.push(txs.filter(t => t.type === 'income').reduce((s,t) => s+Number(t.amount), 0));
+    expenseData.push(txs.filter(t => t.type === 'expense').reduce((s,t) => s+Number(t.amount), 0));
+  }
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (state.charts.trend) state.charts.trend.destroy();
+  state.charts.trend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        { label: '収入', data: incomeData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', borderWidth: 2, pointRadius: 4, fill: true, tension: 0.4 },
+        { label: '支出', data: expenseData, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, pointRadius: 4, fill: true, tension: 0.4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Noto Sans JP', size: 12 } } } },
+      scales: {
+        y: { ticks: { callback: v => `¥${(v/10000).toFixed(0)}万`, font: { family: 'Noto Sans JP', size: 11 } } },
+        x: { ticks: { font: { family: 'Noto Sans JP', size: 11 } } }
+      }
+    }
+  });
+}
+
+// ===================================================
+// 収支一覧
+// ===================================================
+function getFilteredTransactions() {
+  let txs = getMonthTransactions(state.currentYear, state.currentMonth);
+  if (state.txFilter.type)     txs = txs.filter(t => t.type === state.txFilter.type);
+  if (state.txFilter.category) txs = txs.filter(t => t.category === state.txFilter.category);
+  if (state.txFilter.search) {
+    const q = state.txFilter.search.toLowerCase();
+    txs = txs.filter(t =>
+      t.category.toLowerCase().includes(q) ||
+      (t.memo || '').toLowerCase().includes(q)
+    );
+  }
+  return txs.sort((a,b) => b.date.localeCompare(a.date));
+}
+
+function renderTransactions() {
+  // フィルターカテゴリ更新
+  const txs = getMonthTransactions(state.currentYear, state.currentMonth);
+  const cats = [...new Set(txs.map(t => t.category))];
+  const catSel = document.getElementById('filter-category');
+  const current = catSel.value;
+  catSel.innerHTML = '<option value="">カテゴリ：すべて</option>' +
+    cats.map(c => `<option value="${c}"${c===current?' selected':''}>${c}</option>`).join('');
+
+  const filtered = getFilteredTransactions();
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+  if (state.txPage > totalPages) state.txPage = totalPages;
+
+  const start = (state.txPage - 1) * ITEMS_PER_PAGE;
+  const paged = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+  const tbody = document.getElementById('transaction-tbody');
+  const noMsg = document.getElementById('no-transaction-msg');
+
+  if (paged.length === 0) {
+    tbody.innerHTML = '';
+    noMsg.style.display = 'block';
+  } else {
+    noMsg.style.display = 'none';
+    tbody.innerHTML = paged.map(tx => `
+      <tr>
+        <td data-label="日付">${formatDate(tx.date)}</td>
+        <td data-label="種別"><span class="badge ${tx.type}">${tx.type === 'income' ? '<i class="fas fa-arrow-up"></i> 収入' : '<i class="fas fa-arrow-down"></i> 支出'}</span></td>
+        <td data-label="カテゴリ">${getCategoryIcon(tx.category)} ${tx.category}</td>
+        <td data-label="メモ" style="color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tx.memo || '-'}</td>
+        <td class="text-right amount-cell ${tx.type}" data-label="金額">${tx.type==='income'?'+':'−'}${formatYen(tx.amount)}</td>
+        <td class="text-center action-cell" data-label="操作">
+          <div class="action-buttons">
+            <button class="btn-icon edit" onclick="startEdit('${tx.id}')" title="編集"><i class="fas fa-pen"></i></button>
+            <button class="btn-icon delete" onclick="confirmDelete('${tx.id}')" title="削除"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  const pg = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goToPage(${state.txPage-1})" ${state.txPage===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - state.txPage) <= 2) {
+      html += `<button class="page-btn${i===state.txPage?' active':''}" onclick="goToPage(${i})">${i}</button>`;
+    } else if (Math.abs(i - state.txPage) === 3) {
+      html += `<span class="page-btn" style="pointer-events:none">…</span>`;
+    }
+  }
+  html += `<button class="page-btn" onclick="goToPage(${state.txPage+1})" ${state.txPage===totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+  pg.innerHTML = html;
+}
+
+function goToPage(p) {
+  state.txPage = p;
+  renderTransactions();
+}
+
+// ===================================================
+// 収支入力フォーム
+// ===================================================
+function renderInputForm() {
+  updateCategorySelect();
+  if (!document.getElementById('input-date').value) {
+    document.getElementById('input-date').value = todayString();
+  }
+}
+
+function updateCategorySelect() {
+  const cats = state.inputType === 'expense' ? state.expenseCategories : state.incomeCategories;
+  const sel = document.getElementById('input-category');
+  const cur = sel.value;
+  sel.innerHTML = cats.map(c => `<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+}
+
+function setInputType(type) {
+  state.inputType = type;
+  document.querySelectorAll('.type-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.type === type);
+  });
+  updateCategorySelect();
+}
+
+function resetForm() {
+  state.editingTxId = null;
+  document.getElementById('transaction-form').reset();
+  document.getElementById('edit-id').value = '';
+  document.getElementById('input-date').value = todayString();
+  document.getElementById('form-cancel-btn').style.display = 'none';
+  document.getElementById('form-submit-btn').innerHTML = '<i class="fas fa-check"></i> 登録する';
+  setInputType('expense');
+}
+
+function startEdit(id) {
+  const tx = state.allTransactions.find(t => t.id === id);
+  if (!tx) return;
+
+  navigateTo('input');
+  state.editingTxId = id;
+
+  setInputType(tx.type);
+  document.getElementById('edit-id').value = id;
+  document.getElementById('input-date').value = tx.date;
+  document.getElementById('input-amount').value = tx.amount;
+  document.getElementById('input-memo').value = tx.memo || '';
+
+  // カテゴリセット（少し遅延）
+  setTimeout(() => {
+    const sel = document.getElementById('input-category');
+    if ([...sel.options].some(o => o.value === tx.category)) {
+      sel.value = tx.category;
+    }
+  }, 50);
+
+  document.getElementById('form-cancel-btn').style.display = 'inline-flex';
+  document.getElementById('form-submit-btn').innerHTML = '<i class="fas fa-pen"></i> 更新する';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function handleTransactionSubmit(e) {
+  e.preventDefault();
+  const date     = document.getElementById('input-date').value;
+  const amount   = parseFloat(document.getElementById('input-amount').value);
+  const category = document.getElementById('input-category').value;
+  const memo     = document.getElementById('input-memo').value.trim();
+  const type     = state.inputType;
+
+  if (!date || !amount || !category) {
+    showToast('日付・金額・カテゴリは必須です', 'error'); return;
+  }
+  if (amount <= 0) {
+    showToast('金額は0より大きい値を入力してください', 'error'); return;
+  }
+
+  const data = { date, amount, category, memo, type };
+  const btn = document.getElementById('form-submit-btn');
+  btn.disabled = true;
+
+  try {
+    if (state.editingTxId) {
+      await apiPut(TABLE_TX, state.editingTxId, data);
+      // stateを更新
+      const idx = state.allTransactions.findIndex(t => t.id === state.editingTxId);
+      if (idx >= 0) state.allTransactions[idx] = { ...state.allTransactions[idx], ...data };
+      showToast('取引を更新しました ✏️');
+    } else {
+      const created = await apiPost(TABLE_TX, data);
+      state.allTransactions.push(created);
+      showToast('取引を登録しました ✅');
+    }
+    resetForm();
+  } catch (err) {
+    showToast('保存に失敗しました', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===================================================
+// 削除
+// ===================================================
+function confirmDelete(id) {
+  state.deletingTxId = id;
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+
+async function executeDelete() {
+  if (!state.deletingTxId) return;
+  try {
+    await apiDelete(TABLE_TX, state.deletingTxId);
+    state.allTransactions = state.allTransactions.filter(t => t.id !== state.deletingTxId);
+    showToast('取引を削除しました 🗑️');
+    refreshCurrentPage();
+  } catch (err) {
+    showToast('削除に失敗しました', 'error');
+  } finally {
+    state.deletingTxId = null;
+    document.getElementById('delete-modal').style.display = 'none';
+  }
+}
+
+// ===================================================
+// 予算管理
+// ===================================================
+function renderBudget() {
+  // カテゴリセレクト更新 (支出カテゴリのみ)
+  const budgetCatSel = document.getElementById('budget-category');
+  const curVal = budgetCatSel.value;
+  budgetCatSel.innerHTML = state.expenseCategories
+    .map(c => `<option value="${c}"${c===curVal?' selected':''}>${c}</option>`).join('');
+
+  const txs = getMonthTransactions(state.currentYear, state.currentMonth);
+  const expByCategory = {};
+  txs.filter(t => t.type === 'expense').forEach(t => {
+    expByCategory[t.category] = (expByCategory[t.category] || 0) + Number(t.amount);
+  });
+
+  const container = document.getElementById('budget-list');
+  const noMsg = document.getElementById('no-budget-msg');
+
+  if (state.allBudgets.length === 0) {
+    container.innerHTML = '';
+    noMsg.style.display = 'block';
+    return;
+  }
+  noMsg.style.display = 'none';
+
+  container.innerHTML = state.allBudgets.map(b => {
+    const spent   = expByCategory[b.category] || 0;
+    const ratio   = b.budget > 0 ? Math.min(spent / b.budget, 1) : 0;
+    const pct     = Math.round(ratio * 100);
+    const isOver  = spent > b.budget;
+    const isWarn  = !isOver && pct >= 80;
+    const fillClass = isOver ? 'over' : (isWarn ? 'warning' : '');
+    const remaining = b.budget - spent;
+
+    return `
+      <div class="budget-item">
+        <div class="budget-header">
+          <span class="budget-category">${getCategoryIcon(b.category)} ${b.category}</span>
+          <div class="budget-actions">
+            <button class="btn-icon edit" onclick="startEditBudget('${b.id}')" title="編集"><i class="fas fa-pen"></i></button>
+            <button class="btn-icon delete" onclick="deleteBudget('${b.id}')" title="削除"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="budget-amounts">
+          <span>使用: <strong>${formatYen(spent)}</strong></span>
+          <span>予算: <strong>${formatYen(b.budget)}</strong></span>
+          <span style="margin-left:auto">${pct}%</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill ${fillClass}" style="width:${pct}%"></div>
+        </div>
+        <div class="budget-note${isOver?' over':''}">
+          ${isOver
+            ? `⚠️ 予算を ${formatYen(Math.abs(remaining))} オーバーしています`
+            : isWarn
+              ? `⚡ 残り ${formatYen(remaining)} (${100-pct}%)`
+              : `残り ${formatYen(remaining)}`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startEditBudget(id) {
+  const b = state.allBudgets.find(b => b.id === id);
+  if (!b) return;
+  state.editingBudgetId = id;
+  document.getElementById('budget-edit-id').value = id;
+  document.getElementById('budget-category').value = b.category;
+  document.getElementById('budget-amount').value = b.budget;
+  document.getElementById('budget-cancel-btn').style.display = 'inline-flex';
+  document.getElementById('budget-submit-btn').innerHTML = '<i class="fas fa-pen"></i> 更新する';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetBudgetForm() {
+  state.editingBudgetId = null;
+  document.getElementById('budget-form').reset();
+  document.getElementById('budget-edit-id').value = '';
+  document.getElementById('budget-cancel-btn').style.display = 'none';
+  document.getElementById('budget-submit-btn').innerHTML = '<i class="fas fa-check"></i> 設定する';
+}
+
+async function handleBudgetSubmit(e) {
+  e.preventDefault();
+  const category = document.getElementById('budget-category').value;
+  const budget   = parseFloat(document.getElementById('budget-amount').value);
+  if (!category || !budget || budget <= 0) {
+    showToast('カテゴリと予算額を正しく入力してください', 'error'); return;
+  }
+
+  const data = { category, budget, month: getMonthKey(state.currentYear, state.currentMonth), label: '' };
+  const btn = document.getElementById('budget-submit-btn');
+  btn.disabled = true;
+
+  try {
+    if (state.editingBudgetId) {
+      await apiPut(TABLE_BDG, state.editingBudgetId, data);
+      const idx = state.allBudgets.findIndex(b => b.id === state.editingBudgetId);
+      if (idx >= 0) state.allBudgets[idx] = { ...state.allBudgets[idx], ...data };
+      showToast('予算を更新しました ✏️');
+    } else {
+      // 同カテゴリの重複チェック
+      const exists = state.allBudgets.find(b => b.category === category);
+      if (exists) {
+        showToast('このカテゴリの予算は既に設定済みです。編集してください。', 'info');
+        btn.disabled = false; return;
+      }
+      const created = await apiPost(TABLE_BDG, data);
+      state.allBudgets.push(created);
+      showToast('予算を設定しました 🎯');
+    }
+    resetBudgetForm();
+    renderBudget();
+  } catch (err) {
+    showToast('保存に失敗しました', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteBudget(id) {
+  if (!confirm('この予算設定を削除しますか？')) return;
+  try {
+    await apiDelete(TABLE_BDG, id);
+    state.allBudgets = state.allBudgets.filter(b => b.id !== id);
+    showToast('予算を削除しました 🗑️');
+    renderBudget();
+  } catch {
+    showToast('削除に失敗しました', 'error');
+  }
+}
+
+// ===================================================
+// 分析ページ
+// ===================================================
+function renderAnalysis() {
+  renderMonthlyBarChart();
+  renderIncomePieChart();
+  renderDailyLineChart();
+}
+
+function renderMonthlyBarChart() {
+  const labels = [], incomes = [], expenses = [];
+  for (let i = 11; i >= 0; i--) {
+    let m = state.currentMonth - i;
+    let y = state.currentYear;
+    while (m < 1) { m += 12; y--; }
+    const txs = getMonthTransactions(y, m);
+    labels.push(`${m}月`);
+    incomes.push(txs.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0));
+    expenses.push(txs.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0));
+  }
+
+  const ctx = document.getElementById('monthlyBarChart').getContext('2d');
+  if (state.charts.monthlyBar) state.charts.monthlyBar.destroy();
+  state.charts.monthlyBar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '収入', data: incomes, backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4 },
+        { label: '支出', data: expenses, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Noto Sans JP', size: 12 } } } },
+      scales: {
+        y: { ticks: { callback: v => `¥${(v/10000).toFixed(0)}万`, font: { family: 'Noto Sans JP', size: 11 } } },
+        x: { ticks: { font: { family: 'Noto Sans JP', size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderIncomePieChart() {
+  const txs = getMonthTransactions(state.currentYear, state.currentMonth);
+  const incomes = txs.filter(t => t.type === 'income');
+  const catMap = {};
+  incomes.forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + Number(t.amount); });
+  const labels = Object.keys(catMap);
+  const data   = Object.values(catMap);
+  const noMsg  = document.getElementById('no-income-pie-msg');
+
+  if (labels.length === 0) {
+    noMsg.style.display = 'block';
+    if (state.charts.incomePie) { state.charts.incomePie.destroy(); state.charts.incomePie = null; }
+    return;
+  }
+  noMsg.style.display = 'none';
+
+  const ctx = document.getElementById('incomePieChart').getContext('2d');
+  if (state.charts.incomePie) state.charts.incomePie.destroy();
+  state.charts.incomePie = new Chart(ctx, {
+    type: 'pie',
+    data: { labels, datasets: [{ data, backgroundColor: generateColors(labels.length), borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { family: 'Noto Sans JP', size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatYen(ctx.raw)}` } }
+      }
+    }
+  });
+}
+
+function renderDailyLineChart() {
+  const txs = getMonthTransactions(state.currentYear, state.currentMonth);
+  const daysInMonth = new Date(state.currentYear, state.currentMonth, 0).getDate();
+  const labels = [], data = [];
+  let cumulative = 0;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${getMonthKey(state.currentYear, state.currentMonth)}-${String(d).padStart(2,'0')}`;
+    const dayExp = txs.filter(t => t.type === 'expense' && t.date === dateStr)
+                      .reduce((s,t) => s+Number(t.amount), 0);
+    cumulative += dayExp;
+    labels.push(`${d}日`);
+    data.push(cumulative);
+  }
+
+  const ctx = document.getElementById('dailyLineChart').getContext('2d');
+  if (state.charts.dailyLine) state.charts.dailyLine.destroy();
+  state.charts.dailyLine = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '累計支出', data, borderColor: '#ef4444',
+        backgroundColor: 'rgba(239,68,68,0.1)',
+        borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Noto Sans JP', size: 12 } } } },
+      scales: {
+        y: { ticks: { callback: v => `¥${(v/10000).toFixed(1)}万`, font: { family: 'Noto Sans JP', size: 11 } } },
+        x: {
+          ticks: {
+            maxTicksLimit: 10,
+            font: { family: 'Noto Sans JP', size: 10 }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ===================================================
+// カラーパレット生成
+// ===================================================
+function generateColors(n) {
+  const palette = [
+    '#4f7df3','#22c55e','#f59e0b','#ef4444','#8b5cf6',
+    '#06b6d4','#ec4899','#10b981','#f97316','#6366f1',
+    '#84cc16','#14b8a6','#e11d48','#7c3aed','#0ea5e9',
+  ];
+  return Array.from({ length: n }, (_, i) => palette[i % palette.length]);
+}
+
+// ===================================================
+// サイドバー制御
+// ===================================================
+let sidebarOverlay = null;
+
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+}
+
+function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const main    = document.getElementById('main-content');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const sidebarLogo   = document.querySelector('.sidebar-logo');
+  const sidebarHeader = document.querySelector('.sidebar-header');
+
+  const toggleCollapse = () => {
+    sidebar.classList.toggle('collapsed');
+    main.classList.toggle('sidebar-collapsed');
+  };
+
+  const openSidebar = () => {
+    if (sidebar.classList.contains('collapsed')) {
+      sidebar.classList.remove('collapsed');
+      main.classList.remove('sidebar-collapsed');
+    }
+  };
+
+  // デスクトップ折りたたみボタン
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCollapse();
+    });
+  }
+
+  // サイドバーが閉じている時にロゴクリックで開く
+  if (sidebarLogo) {
+    sidebarLogo.addEventListener('click', (e) => {
+      if (sidebar.classList.contains('collapsed')) {
+        e.stopPropagation();
+        openSidebar();
+      }
+    });
+  }
+
+  // サイドバーが閉じている時にヘッダー領域クリックでも開く
+  if (sidebarHeader) {
+    sidebarHeader.addEventListener('click', (e) => {
+      if (e.target.closest('#sidebar-toggle')) return;
+      if (sidebar.classList.contains('collapsed')) {
+        openSidebar();
+      }
+    });
+  }
+
+  // モバイルハンバーガー
+  sidebarOverlay = document.createElement('div');
+  sidebarOverlay.id = 'sidebar-overlay';
+  document.body.appendChild(sidebarOverlay);
+
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  if (hamburgerBtn) {
+    hamburgerBtn.addEventListener('click', () => {
+      sidebar.classList.add('mobile-open');
+      sidebarOverlay.classList.add('active');
+    });
+  }
+
+  sidebarOverlay.addEventListener('click', closeMobileSidebar);
+}
+
+// ===================================================
+// カテゴリ追加モーダル
+// ===================================================
+function openCategoryModal() {
+  document.getElementById('category-modal').style.display = 'flex';
+  document.getElementById('new-category-input').value = '';
+  setTimeout(() => document.getElementById('new-category-input').focus(), 50);
+}
+
+function closeCategoryModal() {
+  document.getElementById('category-modal').style.display = 'none';
+}
+
+function addNewCategory() {
+  const name = document.getElementById('new-category-input').value.trim();
+  if (!name) { showToast('カテゴリ名を入力してください', 'error'); return; }
+
+  const arr = state.inputType === 'expense' ? state.expenseCategories : state.incomeCategories;
+  if (arr.includes(name)) { showToast('すでに存在するカテゴリです', 'info'); return; }
+  arr.push(name);
+  CATEGORY_ICONS[name] = '📌';
+
+  closeCategoryModal();
+  updateCategorySelect();
+  document.getElementById('input-category').value = name;
+  showToast(`カテゴリ「${name}」を追加しました`);
+}
+
+// ===================================================
+// イベント登録
+// ===================================================
+function bindEvents() {
+  // ナビゲーション
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', e => {
+      // 外部リンク（target="_blank"）はブラウザデフォルト動作に任せる
+      if (link.target === '_blank') return;
+      e.preventDefault();
+      if (link.dataset.page) navigateTo(link.dataset.page);
+    });
+  });
+
+  // 一覧ページからの追加ボタン
+  document.getElementById('add-from-list-btn').addEventListener('click', () => navigateTo('input'));
+
+  // 最近取引の「すべて見る」
+  document.querySelector('.link-more')?.addEventListener('click', e => {
+    e.preventDefault();
+    navigateTo(e.target.dataset.page || 'transactions');
+  });
+
+  // 月切替
+  document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
+
+  // 取引フォーム
+  document.getElementById('transaction-form').addEventListener('submit', handleTransactionSubmit);
+  document.getElementById('form-cancel-btn').addEventListener('click', resetForm);
+
+  document.querySelectorAll('.type-tab').forEach(tab => {
+    tab.addEventListener('click', () => setInputType(tab.dataset.type));
+  });
+
+  // カテゴリ追加
+  document.getElementById('add-category-btn').addEventListener('click', openCategoryModal);
+  document.getElementById('category-modal-cancel').addEventListener('click', closeCategoryModal);
+  document.getElementById('category-modal-add').addEventListener('click', addNewCategory);
+  document.getElementById('new-category-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addNewCategory(); }
+    if (e.key === 'Escape') closeCategoryModal();
+  });
+
+  // 削除モーダル
+  document.getElementById('delete-confirm-btn').addEventListener('click', executeDelete);
+  document.getElementById('delete-cancel-btn').addEventListener('click', () => {
+    state.deletingTxId = null;
+    document.getElementById('delete-modal').style.display = 'none';
+  });
+
+  // フィルター
+  document.getElementById('filter-type').addEventListener('change', e => {
+    state.txFilter.type = e.target.value;
+    state.txPage = 1;
+    renderTransactions();
+  });
+  document.getElementById('filter-category').addEventListener('change', e => {
+    state.txFilter.category = e.target.value;
+    state.txPage = 1;
+    renderTransactions();
+  });
+  let searchTimer;
+  document.getElementById('search-input').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      state.txFilter.search = e.target.value;
+      state.txPage = 1;
+      renderTransactions();
+    }, 300);
+  });
+
+  // 予算フォーム
+  document.getElementById('budget-form').addEventListener('submit', handleBudgetSubmit);
+  document.getElementById('budget-cancel-btn').addEventListener('click', resetBudgetForm);
+}
+
+// ===================================================
+// 現在日時表示
+// ===================================================
+function updateCurrentDateDisplay() {
+  const now = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  const str = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}(${days[now.getDay()]})`;
+  document.getElementById('current-date-display').textContent = str;
+}
+
+// ===================================================
+// アプリ初期化
+// ===================================================
+async function init() {
+  updateCurrentDateDisplay();
+  updateMonthLabel();
+  initSidebar();
+  bindEvents();
+
+  await loadAllData();
+  renderDashboard();
+}
+
+document.addEventListener('DOMContentLoaded', init);
