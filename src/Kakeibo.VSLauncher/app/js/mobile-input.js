@@ -10,10 +10,20 @@
 // ─────────────────────────────────────────
 const API_BASE  = 'tables';
 const TABLE_TX  = 'transactions';
+const TABLE_ACCT = 'bank_accounts';
+const TABLE_ACCT_TX = 'account_transactions';
 const MAX_DIGITS = 10;
 
 const EXPENSE_CATS_DEFAULT = ['食費','交通費','光熱費','通信費','日用品','医療費','娯楽','衣服','外食','教育','保険','住居','その他'];
 const INCOME_CATS_DEFAULT  = ['給与','副業','ボーナス','投資','その他収入'];
+
+const ACCT_TX_CATS = ['ATM出金','ATM入金','振込','公共料金','カード引落','利息','その他','食費','交通費','光熱費','通信費','日用品','医療費','娯楽','衣服','外食','教育','保険','住居'];
+
+const LINK_MODE_NONE = 0;
+const LINK_MODE_INCOME = 1;
+const LINK_MODE_INCOME_EXPENSE = 2;
+const KAKEIBO_INCOME_FALLBACK = 'その他収入';
+const KAKEIBO_EXPENSE_FALLBACK = 'その他';
 
 const CAT_ICONS = {
   '食費':'🍚','交通費':'🚃','光熱費':'💡','通信費':'📱','日用品':'🧹',
@@ -33,7 +43,7 @@ const STORAGE_KEY_MEMOS   = 'mkb_recent_memos';
 // アプリ状態
 // ─────────────────────────────────────────
 const s = {
-  type:             'expense',        // 'expense' | 'income'
+  type:             'expense',        // 'expense' | 'income' | 'account'
   rawAmount:        '',               // テンキー入力文字列
   selectedCategory: '',
   selectedDate:     todayStr(),
@@ -43,6 +53,12 @@ const s = {
   todayTxs:         [],               // 今日登録した取引（履歴パネル用）
   detailOpen:       false,
   historyOpen:      false,
+  // 口座モード
+  accounts:         [],
+  selectedAccountId: '',
+  acctTxType:       'withdrawal',     // 'withdrawal' | 'deposit'
+  selectedAcctCat:  '',
+  acctLinkMode:     LINK_MODE_NONE,
 };
 
 // ─────────────────────────────────────────
@@ -132,6 +148,44 @@ async function apiGetToday() {
                           .sort((a,b) => b.created_at - a.created_at);
 }
 
+// ─── 口座API ───
+async function apiGetAccounts() {
+  const res = await fetch(`${API_BASE}/${TABLE_ACCT}?limit=200`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data || [];
+}
+
+async function apiPostAcctTx(data) {
+  const res = await fetch(`${API_BASE}/${TABLE_ACCT_TX}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('口座取引登録失敗');
+  return await res.json();
+}
+
+async function apiPutAcct(id, data) {
+  const res = await fetch(`${API_BASE}/${TABLE_ACCT}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('口座更新失敗');
+  return await res.json();
+}
+
+async function apiPostKakeibo(data) {
+  const res = await fetch(`${API_BASE}/${TABLE_TX}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('家計簿登録失敗');
+  return await res.json();
+}
+
 // ─────────────────────────────────────────
 // DOM 参照
 // ─────────────────────────────────────────
@@ -156,6 +210,12 @@ const successOverlay = $('success-overlay');
 const successMsg     = $('success-msg');
 const successSub     = $('success-sub');
 const continuousMode = $('continuous-mode');
+const accountFields  = $('account-fields');
+const kakeiboFields  = $('kakeibo-fields');
+const accountChips   = $('account-chips');
+const acctCatChips   = $('acct-cat-chips');
+const acctLinkGroup  = $('acct-link-group');
+const acctLinkSelect = $('acct-link-mode');
 
 // ─────────────────────────────────────────
 // 金額入力（テンキー）
@@ -163,9 +223,10 @@ const continuousMode = $('continuous-mode');
 function updateAmountDisplay() {
   const num = parseInt(s.rawAmount || '0', 10);
   amountValueEl.textContent = num.toLocaleString('ja-JP');
+  const typeClass = s.type === 'account' ? s.acctTxType : s.type;
   amountDisplay.className = 'amount-display' +
     (s.rawAmount ? ' has-value' : '') +
-    ` ${s.type}`;
+    ` ${typeClass}`;
 }
 
 function handleNumpad(val) {
@@ -213,15 +274,91 @@ function handleNumpad(val) {
 function setType(type) {
   s.type = type;
   s.selectedCategory = '';
+  s.selectedAcctCat = '';
 
   document.querySelectorAll('.type-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.type === type);
   });
-  amountLabelEl.textContent = type === 'expense' ? '支出金額' : '収入金額';
+
+  const isAccount = type === 'account';
+  amountLabelEl.textContent = isAccount
+    ? (s.acctTxType === 'withdrawal' ? '出金金額' : '入金金額')
+    : (type === 'expense' ? '支出金額' : '収入金額');
+
+  // フィールド表示切替
+  if (accountFields) accountFields.style.display = isAccount ? 'block' : 'none';
+  if (kakeiboFields) kakeiboFields.style.display = isAccount ? 'none' : 'block';
+
   updateAmountDisplay();
-  renderCategoryChips();
-  renderMemoSuggestions();
+  if (isAccount) {
+    renderAccountChips();
+    renderAcctCatChips();
+    updateAcctLinkVisibility();
+  } else {
+    renderCategoryChips();
+    renderMemoSuggestions();
+  }
   updateSubmitBtnStyle();
+}
+
+// ─────────────────────────────────────────
+// 口座モード: 入金/出金切替
+// ─────────────────────────────────────────
+function setAcctTxType(acctType) {
+  s.acctTxType = acctType;
+  document.querySelectorAll('.acct-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.acctType === acctType);
+  });
+  amountLabelEl.textContent = acctType === 'withdrawal' ? '出金金額' : '入金金額';
+  updateAmountDisplay();
+  updateAcctLinkVisibility();
+}
+
+function updateAcctLinkVisibility() {
+  // 出金時のみ家計簿連携を表示
+  if (acctLinkGroup) {
+    acctLinkGroup.style.display = (s.type === 'account' && s.acctTxType === 'withdrawal') ? 'block' : 'none';
+  }
+}
+
+// ─────────────────────────────────────────
+// 口座チップ描画
+// ─────────────────────────────────────────
+function renderAccountChips() {
+  if (!accountChips) return;
+  accountChips.innerHTML = s.accounts.map(a => {
+    const isSel = a.id === s.selectedAccountId;
+    return `<button class="cat-chip${isSel ? ' selected' : ''}" data-acct-id="${a.id}">
+      🏦 ${a.bank_name || ''} ${a.name}
+    </button>`;
+  }).join('');
+  accountChips.querySelectorAll('.cat-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      s.selectedAccountId = btn.dataset.acctId;
+      renderAccountChips();
+      if (navigator.vibrate) navigator.vibrate(20);
+    });
+  });
+}
+
+// ─────────────────────────────────────────
+// 口座種類チップ描画
+// ─────────────────────────────────────────
+function renderAcctCatChips() {
+  if (!acctCatChips) return;
+  acctCatChips.innerHTML = ACCT_TX_CATS.map(cat => {
+    const isSel = cat === s.selectedAcctCat;
+    return `<button class="cat-chip${isSel ? ' selected' : ''}" data-acct-cat="${cat}">
+      ${cat}
+    </button>`;
+  }).join('');
+  acctCatChips.querySelectorAll('.cat-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      s.selectedAcctCat = btn.dataset.acctCat;
+      renderAcctCatChips();
+      if (navigator.vibrate) navigator.vibrate(20);
+    });
+  });
 }
 
 // ─────────────────────────────────────────
@@ -230,8 +367,14 @@ function setType(type) {
 function openDetailPanel() {
   s.detailOpen = true;
   panelDate.value = s.selectedDate;
-  renderCategoryChips();
-  renderMemoSuggestions();
+  if (s.type === 'account') {
+    renderAccountChips();
+    renderAcctCatChips();
+    updateAcctLinkVisibility();
+  } else {
+    renderCategoryChips();
+    renderMemoSuggestions();
+  }
   updateSubmitBtnStyle();
 
   detailBackdrop.style.display = 'block';
@@ -318,19 +461,12 @@ function renderMemoSuggestions() {
 // ─────────────────────────────────────────
 async function handleSubmit() {
   const amount   = parseInt(s.rawAmount || '0', 10);
-  const category = s.selectedCategory;
   const date     = panelDate.value || s.selectedDate;
   const memo     = panelMemo.value.trim();
 
   // バリデーション
   if (!amount || amount <= 0) {
     showToast('金額を入力してください', 'error'); return;
-  }
-  if (!category) {
-    showToast('カテゴリを選択してください', 'error');
-    // チップエリアを軽くスクロール表示
-    categoryChips.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
   }
   if (!date) {
     showToast('日付を選択してください', 'error'); return;
@@ -339,33 +475,118 @@ async function handleSubmit() {
   submitBtn.disabled = true;
 
   try {
-    const created = await apiPost({ date, type: s.type, category, amount, memo });
-    s.todayTxs.unshift(created);
-    if (memo) saveRecentMemo(memo);
-
-    // 完了フィードバック
-    showSuccessOverlay(s.type, category, amount);
-
-    const continuous = continuousMode.checked;
-    if (continuous) {
-      // 連続入力モード: フォームをリセット
-      setTimeout(() => {
-        hideSuccessOverlay();
-        resetForm();
-      }, 900);
+    if (s.type === 'account') {
+      await handleAccountSubmit(amount, date, memo);
     } else {
-      // 通常モード: 詳細パネルを閉じる
-      closeDetailPanel();
-      setTimeout(hideSuccessOverlay, 1100);
-      resetAmountOnly();
+      await handleKakeiboSubmit(amount, date, memo);
     }
-
-    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-
   } catch (err) {
     showToast('登録に失敗しました。通信状況をご確認ください。', 'error');
     submitBtn.disabled = false;
   }
+}
+
+async function handleKakeiboSubmit(amount, date, memo) {
+  const category = s.selectedCategory;
+  if (!category) {
+    showToast('カテゴリを選択してください', 'error');
+    categoryChips.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    submitBtn.disabled = false;
+    return;
+  }
+
+  const created = await apiPost({ date, type: s.type, category, amount, memo });
+  s.todayTxs.unshift(created);
+  if (memo) saveRecentMemo(memo);
+
+  showSuccessOverlay(s.type, category, amount);
+
+  const continuous = continuousMode.checked;
+  if (continuous) {
+    setTimeout(() => { hideSuccessOverlay(); resetForm(); }, 900);
+  } else {
+    closeDetailPanel();
+    setTimeout(hideSuccessOverlay, 1100);
+    resetAmountOnly();
+  }
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+}
+
+async function handleAccountSubmit(amount, date, memo) {
+  if (!s.selectedAccountId) {
+    showToast('口座を選択してください', 'error');
+    accountChips.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    submitBtn.disabled = false;
+    return;
+  }
+  if (!s.selectedAcctCat) {
+    showToast('種類を選択してください', 'error');
+    acctCatChips.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    submitBtn.disabled = false;
+    return;
+  }
+
+  const account = s.accounts.find(a => a.id === s.selectedAccountId);
+  if (!account) { showToast('口座が見つかりません', 'error'); submitBtn.disabled = false; return; }
+
+  const isDebit = s.acctTxType === 'withdrawal';
+  const newBalance = Number(account.balance || 0) + (isDebit ? -amount : amount);
+
+  // 家計簿連携（出金時のみ）
+  let linkedIncomeTxId = '';
+  let linkedExpenseTxId = '';
+  const linkMode = isDebit ? (parseInt(acctLinkSelect.value, 10) || LINK_MODE_NONE) : LINK_MODE_NONE;
+  const kakeiboMemo = `${account.name}より${memo ? ' / ' + memo : ''}`;
+
+  if (linkMode >= LINK_MODE_INCOME) {
+    const incomeCat = s.selectedAcctCat || KAKEIBO_INCOME_FALLBACK;
+    const kakeiboCreated = await apiPostKakeibo({
+      date, amount, type: 'income', category: incomeCat, memo: kakeiboMemo,
+    });
+    linkedIncomeTxId = kakeiboCreated.id;
+    s.todayTxs.unshift(kakeiboCreated);
+  }
+  if (linkMode === LINK_MODE_INCOME_EXPENSE) {
+    const expenseCat = s.selectedAcctCat || KAKEIBO_EXPENSE_FALLBACK;
+    const kakeiboCreated = await apiPostKakeibo({
+      date, amount, type: 'expense', category: expenseCat, memo: kakeiboMemo,
+    });
+    linkedExpenseTxId = kakeiboCreated.id;
+    s.todayTxs.unshift(kakeiboCreated);
+  }
+
+  // 口座取引登録
+  const txData = {
+    account_id: s.selectedAccountId,
+    date, type: s.acctTxType, amount,
+    category: s.selectedAcctCat,
+    description: memo,
+    related_account_id: '',
+    link_mode: linkMode,
+    linked_income_tx_id: linkedIncomeTxId,
+    linked_expense_tx_id: linkedExpenseTxId,
+    balance_after: newBalance,
+  };
+  await apiPostAcctTx(txData);
+
+  // 口座残高更新
+  const updated = await apiPutAcct(account.id, { ...account, balance: newBalance });
+  const acctIdx = s.accounts.findIndex(a => a.id === account.id);
+  if (acctIdx >= 0) s.accounts[acctIdx] = { ...s.accounts[acctIdx], ...updated };
+
+  if (memo) saveRecentMemo(memo);
+
+  showSuccessOverlay('account', s.selectedAcctCat, amount, s.acctTxType);
+
+  const continuous = continuousMode.checked;
+  if (continuous) {
+    setTimeout(() => { hideSuccessOverlay(); resetForm(); }, 900);
+  } else {
+    closeDetailPanel();
+    setTimeout(hideSuccessOverlay, 1100);
+    resetAmountOnly();
+  }
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 }
 
 function resetAmountOnly() {
@@ -377,13 +598,20 @@ function resetAmountOnly() {
 function resetForm() {
   s.rawAmount = '';
   s.selectedCategory = '';
+  s.selectedAcctCat = '';
   s.selectedDate = todayStr();
   s.dateOffset = 0;
+  s.acctLinkMode = LINK_MODE_NONE;
   panelMemo.value = '';
   panelDate.value = s.selectedDate;
+  if (acctLinkSelect) acctLinkSelect.value = String(LINK_MODE_NONE);
   updateAmountDisplay();
-  renderCategoryChips();
-  renderMemoSuggestions();
+  if (s.type === 'account') {
+    renderAcctCatChips();
+  } else {
+    renderCategoryChips();
+    renderMemoSuggestions();
+  }
   // 日付クイックボタンリセット
   document.querySelectorAll('.date-quick-btn').forEach(b => {
     b.classList.toggle('active', Number(b.dataset.offset) === 0);
@@ -394,12 +622,18 @@ function resetForm() {
 // ─────────────────────────────────────────
 // 完了オーバーレイ
 // ─────────────────────────────────────────
-function showSuccessOverlay(type, category, amount) {
+function showSuccessOverlay(type, category, amount, acctTxType) {
   const icon = successOverlay.querySelector('.success-icon');
-  icon.className = `success-icon${type === 'expense' ? ' expense' : ''}`;
-
-  successMsg.textContent = type === 'expense' ? '支出を登録しました！' : '収入を登録しました！';
-  successSub.textContent = `${CAT_ICONS[category] || '💴'} ${category}  ${formatYen(amount)}`;
+  if (type === 'account') {
+    icon.className = 'success-icon';
+    const label = acctTxType === 'withdrawal' ? '出金' : '入金';
+    successMsg.textContent = `口座${label}を登録しました！`;
+    successSub.textContent = `${category}  ${formatYen(amount)}`;
+  } else {
+    icon.className = `success-icon${type === 'expense' ? ' expense' : ''}`;
+    successMsg.textContent = type === 'expense' ? '支出を登録しました！' : '収入を登録しました！';
+    successSub.textContent = `${CAT_ICONS[category] || '💴'} ${category}  ${formatYen(amount)}`;
+  }
   successOverlay.style.display = 'flex';
 }
 
@@ -534,6 +768,11 @@ async function init() {
   try {
     s.todayTxs = await apiGetToday();
   } catch {}
+  // 口座一覧を取得
+  try {
+    s.accounts = await apiGetAccounts();
+    if (s.accounts.length > 0) s.selectedAccountId = s.accounts[0].id;
+  } catch {}
 
   // テンキーイベント
   document.querySelectorAll('.numpad-btn').forEach(btn => {
@@ -543,6 +782,11 @@ async function init() {
   // 収支タブ
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', () => setType(btn.dataset.type));
+  });
+
+  // 口座 入金/出金切替
+  document.querySelectorAll('.acct-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => setAcctTxType(btn.dataset.acctType));
   });
 
   // 詳細パネル：バックドロップ

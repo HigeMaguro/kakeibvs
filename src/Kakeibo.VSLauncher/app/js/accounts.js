@@ -30,6 +30,20 @@ const TX_TYPE_LABELS = {
   transfer_out: { label: '振込（出）', icon: 'fa-right-from-bracket', cls: 'transfer_out' },
 };
 
+/* 家計簿連携モード: 0=連携なし, 1=収入へ連携, 2=収入と支出へ連携 */
+const LINK_MODE_NONE = 0;
+const LINK_MODE_INCOME = 1;
+const LINK_MODE_INCOME_EXPENSE = 2;
+const KAKEIBO_INCOME_CATEGORY_FALLBACK = 'その他収入';
+const KAKEIBO_EXPENSE_CATEGORY_FALLBACK = 'その他';
+
+function getLinkMode(type) {
+  if (type !== 'withdrawal') return LINK_MODE_NONE;
+  const sel = document.getElementById('acct-tx-link-mode');
+  if (!sel) return LINK_MODE_NONE;
+  return parseInt(sel.value, 10) || LINK_MODE_NONE;
+}
+
 /* ─────────────────────────────────────────
    状態
 ───────────────────────────────────────── */
@@ -83,6 +97,37 @@ const acctGet    = (path, qs='') => acctApi('GET', `${path}${qs ? '?'+qs : ''}`,
 const acctPost   = (path, body)  => acctApi('POST',   path, body);
 const acctPut    = (path, body)  => acctApi('PUT',    path, body);
 const acctDelete = (path)        => acctApi('DELETE', path, null);
+
+/* ─── 家計簿(transactions)連携用 API ─── */
+async function kakeiboApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`tables/${path}`, opts);
+  if (!res.ok) throw new Error(`API error: ${method} ${path}`);
+  if (res.status === 204) return null;
+  return res.json();
+}
+const kakeiboPost   = (body)      => kakeiboApi('POST',   'transactions', body);
+const kakeiboPut    = (id, body)  => kakeiboApi('PUT',    `transactions/${id}`, body);
+const kakeiboDelete = (id)        => kakeiboApi('DELETE', `transactions/${id}`, null);
+
+/* ─── app.js state.allTransactions への即時反映ヘルパー ─── */
+function pushKakeiboState(created) {
+  if (typeof state !== 'undefined' && state.allTransactions) {
+    state.allTransactions.push(created);
+  }
+}
+function syncKakeiboState(id, updated) {
+  if (typeof state !== 'undefined' && state.allTransactions) {
+    const kIdx = state.allTransactions.findIndex(t => t.id === id);
+    if (kIdx >= 0) state.allTransactions[kIdx] = { ...state.allTransactions[kIdx], ...updated };
+  }
+}
+function removeKakeiboState(id) {
+  if (typeof state !== 'undefined' && state.allTransactions) {
+    state.allTransactions = state.allTransactions.filter(t => t.id !== id);
+  }
+}
 
 /* ─────────────────────────────────────────
    データ読み込み
@@ -267,6 +312,11 @@ function renderAccountTxArea() {
       const relatedAcct = tx.related_account_id
         ? (acctState.accounts.find(a => a.id === tx.related_account_id) || {}).name || ''
         : '';
+      const hasIncomeLink  = !!tx.linked_income_tx_id || !!tx.linked_tx_id;
+      const hasExpenseLink  = !!tx.linked_expense_tx_id;
+      const linkedBadge = (hasIncomeLink || hasExpenseLink)
+        ? `<span class="acct-tx-linked-badge" title="家計簿へ自動連携済み"><i class="fas fa-link"></i>家計簿${(hasIncomeLink && hasExpenseLink) ? '入出金' : (hasIncomeLink ? '収入' : '支出')}</span>`
+        : '';
       const descText = [tx.description, relatedAcct ? `(${relatedAcct})` : ''].filter(Boolean).join(' ');
 
       return `
@@ -278,7 +328,7 @@ function renderAccountTxArea() {
             </span>
           </td>
           <td data-label="種類" style="color:var(--text-muted);font-size:13px;">${tx.category || '—'}</td>
-          <td data-label="摘要" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${descText || '—'}</td>
+          <td data-label="摘要" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${descText || '—'} ${linkedBadge}</td>
           ${debitCell}
           <td class="text-right acct-tx-balance" data-label="残高">${tx.balance_after != null ? acctFormatYen(tx.balance_after) : '—'}</td>
           <td class="text-center action-cell" data-label="操作">
@@ -488,8 +538,10 @@ function resetTxForm() {
   document.getElementById('acct-tx-form').reset();
   document.getElementById('acct-tx-edit-id').value = '';
   document.getElementById('acct-tx-date').value = acctToday();
+  document.getElementById('acct-tx-link-mode').value = String(LINK_MODE_NONE);
   document.getElementById('acct-tx-submit-btn').innerHTML = '<i class="fas fa-check"></i> 登録する';
   toggleRelatedAccountField('withdrawal');
+  toggleLinkSelectField('withdrawal');
 }
 
 function updateRelatedAccountSelect() {
@@ -505,6 +557,11 @@ function toggleRelatedAccountField(type) {
   grp.style.display = show ? 'block' : 'none';
 }
 
+function toggleLinkSelectField(type) {
+  const grp = document.getElementById('acct-tx-link-kakeibo-wrap');
+  if (grp) grp.style.display = type === 'withdrawal' ? 'block' : 'none';
+}
+
 function acctStartEditTx(id) {
   const tx = acctState.transactions.find(t => t.id === id);
   if (!tx) return;
@@ -517,8 +574,10 @@ function acctStartEditTx(id) {
   document.getElementById('acct-tx-category').value  = tx.category || '';
   document.getElementById('acct-tx-desc').value      = tx.description || '';
   document.getElementById('acct-tx-related').value   = tx.related_account_id || '';
+  document.getElementById('acct-tx-link-mode').value   = String(tx.link_mode || LINK_MODE_NONE);
   document.getElementById('acct-tx-submit-btn').innerHTML = '<i class="fas fa-pen"></i> 更新する';
   toggleRelatedAccountField(tx.type);
+  toggleLinkSelectField(tx.type);
   showTxForm(true);
 }
 
@@ -533,6 +592,7 @@ async function handleTxFormSubmit(e) {
   const category         = document.getElementById('acct-tx-category').value.trim();
   const description      = document.getElementById('acct-tx-desc').value.trim();
   const relatedAccountId = document.getElementById('acct-tx-related').value || '';
+  const linkMode         = getLinkMode(type);
 
   if (!date)   { acctShowToast('日付を入力してください', 'error'); return; }
   if (!amount || amount <= 0) { acctShowToast('金額を入力してください', 'error'); return; }
@@ -553,22 +613,118 @@ async function handleTxFormSubmit(e) {
     account_id: acctState.activeAccountId,
     date, type, amount, category, description,
     related_account_id: relatedAccountId || '',
+    link_mode: linkMode,
+    linked_income_tx_id: '',
+    linked_expense_tx_id: '',
     balance_after: newBalance,
   };
+
+  // 家計簿連携: 種類名を収入カテゴリ(および支出カテゴリ)として使用
+  const kakeiboIncomeCategory  = category || KAKEIBO_INCOME_CATEGORY_FALLBACK;
+  const kakeiboExpenseCategory = category || KAKEIBO_EXPENSE_CATEGORY_FALLBACK;
+  const kakeiboMemo = `${account.name}より${description ? ' / ' + description : ''}`;
+
+  // 収入/支出カテゴリに未登録なら即時追加
+  if (typeof state !== 'undefined') {
+    if (linkMode >= LINK_MODE_INCOME && state.incomeCategories && !state.incomeCategories.includes(kakeiboIncomeCategory)) {
+      state.incomeCategories.push(kakeiboIncomeCategory);
+    }
+    if (linkMode === LINK_MODE_INCOME_EXPENSE && state.expenseCategories && !state.expenseCategories.includes(kakeiboExpenseCategory)) {
+      state.expenseCategories.push(kakeiboExpenseCategory);
+    }
+  }
+
+  let linkedIncomeTxId = '';
+  let linkedExpenseTxId = '';
 
   const btn = document.getElementById('acct-tx-submit-btn');
   btn.disabled = true;
 
   try {
     if (acctState.editingTxId) {
+      // 編集: 旧連携取引を調整
+      const oldIncomeId  = oldTx?.linked_income_tx_id || oldTx?.linked_tx_id || '';
+      const oldExpenseId = oldTx?.linked_expense_tx_id || '';
+
+      // 収入連携
+      if (linkMode >= LINK_MODE_INCOME) {
+        const kakeiboIncomeData = {
+          date, amount, type: 'income',
+          category: kakeiboIncomeCategory,
+          memo: kakeiboMemo,
+        };
+        if (oldIncomeId) {
+          const updated = await kakeiboPut(oldIncomeId, kakeiboIncomeData);
+          linkedIncomeTxId = oldIncomeId;
+          syncKakeiboState(oldIncomeId, updated);
+        } else {
+          const created = await kakeiboPost(kakeiboIncomeData);
+          linkedIncomeTxId = created.id;
+          pushKakeiboState(created);
+        }
+      } else if (oldIncomeId) {
+        await kakeiboDelete(oldIncomeId);
+        removeKakeiboState(oldIncomeId);
+      }
+
+      // 支出連携
+      if (linkMode === LINK_MODE_INCOME_EXPENSE) {
+        const kakeiboExpenseData = {
+          date, amount, type: 'expense',
+          category: kakeiboExpenseCategory,
+          memo: kakeiboMemo,
+        };
+        if (oldExpenseId) {
+          const updated = await kakeiboPut(oldExpenseId, kakeiboExpenseData);
+          linkedExpenseTxId = oldExpenseId;
+          syncKakeiboState(oldExpenseId, updated);
+        } else {
+          const created = await kakeiboPost(kakeiboExpenseData);
+          linkedExpenseTxId = created.id;
+          pushKakeiboState(created);
+        }
+      } else if (oldExpenseId) {
+        await kakeiboDelete(oldExpenseId);
+        removeKakeiboState(oldExpenseId);
+      }
+
+      txData.linked_income_tx_id  = linkedIncomeTxId;
+      txData.linked_expense_tx_id = linkedExpenseTxId;
+
       const updated = await acctPut(`${ACCT_TX_TABLE}/${acctState.editingTxId}`, txData);
       const idx = acctState.transactions.findIndex(t => t.id === acctState.editingTxId);
       if (idx >= 0) acctState.transactions[idx] = { ...acctState.transactions[idx], ...updated };
       acctShowToast('取引を更新しました ✏️');
     } else {
+      // 新規作成
+      if (linkMode >= LINK_MODE_INCOME) {
+        const kakeiboIncomeData = {
+          date, amount, type: 'income',
+          category: kakeiboIncomeCategory,
+          memo: kakeiboMemo,
+        };
+        const created = await kakeiboPost(kakeiboIncomeData);
+        linkedIncomeTxId = created.id;
+        pushKakeiboState(created);
+      }
+      if (linkMode === LINK_MODE_INCOME_EXPENSE) {
+        const kakeiboExpenseData = {
+          date, amount, type: 'expense',
+          category: kakeiboExpenseCategory,
+          memo: kakeiboMemo,
+        };
+        const created = await kakeiboPost(kakeiboExpenseData);
+        linkedExpenseTxId = created.id;
+        pushKakeiboState(created);
+      }
+
+      txData.linked_income_tx_id  = linkedIncomeTxId;
+      txData.linked_expense_tx_id = linkedExpenseTxId;
+
       const created = await acctPost(ACCT_TX_TABLE, txData);
       acctState.transactions.unshift(created);
-      acctShowToast(`${isDebit ? '出金' : '入金'}を登録しました`);
+      const linkLabel = linkMode === LINK_MODE_NONE ? '' : (linkMode === LINK_MODE_INCOME ? '（家計簿収入へ連携）' : '（家計簿入出金へ連携）');
+      acctShowToast(`${isDebit ? '出金' : '入金'}を登録しました${linkLabel}`);
     }
 
     // 口座残高を更新
@@ -603,6 +759,7 @@ async function handleTxFormSubmit(e) {
     renderSummaryCards();
     renderAccountCardsList();
     renderAccountTxArea();
+    if (typeof renderMonthlySummaryBar === 'function') renderMonthlySummaryBar();
 
   } catch (err) {
     acctShowToast('保存に失敗しました', 'error');
@@ -626,6 +783,13 @@ async function acctDeleteTx(id) {
   if (!tx) return;
 
   try {
+    // 家計簿連携取引があれば削除(収入・支出の2件)
+    const linkedIds = [tx.linked_income_tx_id, tx.linked_expense_tx_id, tx.linked_tx_id].filter(Boolean);
+    for (const lid of linkedIds) {
+      try { await kakeiboDelete(lid); } catch (e) { /* 無視 */ }
+      removeKakeiboState(lid);
+    }
+
     await acctDelete(`${ACCT_TX_TABLE}/${id}`);
     acctState.transactions = acctState.transactions.filter(t => t.id !== id);
 
@@ -643,6 +807,7 @@ async function acctDeleteTx(id) {
     renderSummaryCards();
     renderAccountCardsList();
     renderAccountTxArea();
+    if (typeof renderMonthlySummaryBar === 'function') renderMonthlySummaryBar();
   } catch {
     acctShowToast('削除に失敗しました', 'error');
   }
@@ -703,9 +868,10 @@ function bindAccountEvents() {
   // 取引フォーム送信
   document.getElementById('acct-tx-form').addEventListener('submit', handleTxFormSubmit);
 
-  // 取引種別変更 → 相手口座フィールド切替
+  // 取引種別変更 → 相手口座フィールド切替 + 連携セレクト切替
   document.getElementById('acct-tx-type').addEventListener('change', e => {
     toggleRelatedAccountField(e.target.value);
+    toggleLinkSelectField(e.target.value);
   });
 
   // 取引フィルター

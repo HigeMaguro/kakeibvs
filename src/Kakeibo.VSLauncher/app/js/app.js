@@ -14,13 +14,13 @@ const TABLE_BDG = 'budgets';
 const ITEMS_PER_PAGE = 15;
 
 const EXPENSE_CATEGORIES_DEFAULT = ['食費','交通費','光熱費','通信費','日用品','医療費','娯楽','衣服','外食','教育','保険','住居','その他'];
-const INCOME_CATEGORIES_DEFAULT  = ['給与','副業','ボーナス','投資','その他収入'];
+const INCOME_CATEGORIES_DEFAULT  = ['給与','副業','ボーナス','投資','銀行ATM','その他収入'];
 
 const CATEGORY_ICONS = {
   '食費':'🍚','交通費':'🚃','光熱費':'💡','通信費':'📱','日用品':'🧹',
   '医療費':'💊','娯楽':'🎮','衣服':'👕','外食':'🍜','教育':'📚',
   '保険':'🛡️','住居':'🏠','その他':'📦','給与':'💼','副業':'💻',
-  'ボーナス':'🎁','投資':'📈','その他収入':'💰'
+  'ボーナス':'🎁','投資':'📈','銀行ATM':'🏧','その他収入':'💰'
 };
 
 // ===================================================
@@ -32,6 +32,7 @@ const state = {
   currentMonth: new Date().getMonth() + 1,
   allTransactions: [],
   allBudgets: [],
+  openingCashBalances: {}, // { 'YYYY-MM': amount }
   txPage: 1,
   txFilter: { type: '', category: '', search: '' },
   editingTxId: null,
@@ -42,6 +43,8 @@ const state = {
   inputType: 'expense',
   charts: {},
 };
+
+const TABLE_SETTINGS = 'app_settings';
 
 // ===================================================
 // ユーティリティ
@@ -118,6 +121,67 @@ async function apiDelete(table, id) {
 }
 
 // ===================================================
+// 開始時現金残高 (app_settings)
+// ===================================================
+const OPENING_CASH_KEY_PREFIX = 'opening_cash_';
+
+function openingCashKey(y, m) {
+  return OPENING_CASH_KEY_PREFIX + getMonthKey(y, m);
+}
+
+async function loadOpeningCashBalances() {
+  try {
+    const res = await apiGet(TABLE_SETTINGS, { limit: 500 });
+    (res.data || []).forEach(row => {
+      if (row.key && row.key.startsWith(OPENING_CASH_KEY_PREFIX)) {
+        state.openingCashBalances[row.key] = parseFloat(row.value) || 0;
+      }
+    });
+  } catch (e) {
+    // 読み込み失敗は無視
+  }
+}
+
+function getOpeningCash(y, m) {
+  return state.openingCashBalances[openingCashKey(y, m)] || 0;
+}
+
+function isOpeningCashSaved(y, m) {
+  const key = openingCashKey(y, m);
+  return Object.prototype.hasOwnProperty.call(state.openingCashBalances, key);
+}
+
+/** 前月の開始残高 + 前月収入 - 前月支出 を計算して繰越額を返す */
+function computeCarriedOverCash(y, m) {
+  let pm = m - 1, py = y;
+  if (pm < 1) { pm = 12; py--; }
+  const prevOpening = getOpeningCash(py, pm) || 0;
+  const txs = getMonthTransactions(py, pm);
+  const income  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0);
+  return prevOpening + income - expense;
+}
+
+async function saveOpeningCash(y, m, amount) {
+  const key = openingCashKey(y, m);
+  const value = String(amount);
+  try {
+    // 既存レコード検索
+    const res = await apiGet(TABLE_SETTINGS, { key, limit: 10 });
+    const existing = (res.data || []).find(r => r.key === key);
+    if (existing) {
+      await apiPut(TABLE_SETTINGS, existing.id, { key, value, updated_at: Date.now() });
+    } else {
+      await apiPost(TABLE_SETTINGS, { key, value });
+    }
+    state.openingCashBalances[key] = amount;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ===================================================
 // データ読み込み
 // ===================================================
 async function loadAllData() {
@@ -137,6 +201,7 @@ async function loadAllData() {
         state.incomeCategories.push(tx.category);
       }
     });
+    await loadOpeningCashBalances();
   } catch (e) {
     showToast('データの読み込みに失敗しました', 'error');
   }
@@ -174,6 +239,8 @@ function navigateTo(pageName, skipHistory = false) {
 }
 
 function refreshCurrentPage() {
+  // 共通月次サマリーバーを毎回更新（全ページ表示）
+  renderMonthlySummaryBar();
   switch (state.currentPage) {
     case 'dashboard':    renderDashboard(); break;
     case 'transactions': renderTransactions(); break;
@@ -181,6 +248,31 @@ function refreshCurrentPage() {
     case 'budget':       renderBudget(); break;
     case 'analysis':     renderAnalysis(); break;
     case 'accounts':     if (typeof renderAccountsPage === 'function') renderAccountsPage(); break;
+  }
+}
+
+// ===================================================
+// 共通月次サマリーバー
+// ===================================================
+function renderMonthlySummaryBar() {
+  const y = state.currentYear, m = state.currentMonth;
+  const saved = isOpeningCashSaved(y, m);
+  const opening = saved ? getOpeningCash(y, m) : computeCarriedOverCash(y, m);
+  const txs = getMonthTransactions(y, m);
+  const income  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0);
+  const expense = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0);
+  const balance = opening + income - expense;
+
+  const elOpening = document.getElementById('msb-opening');
+  const elIncome  = document.getElementById('msb-income');
+  const elExpense = document.getElementById('msb-expense');
+  const elBalance = document.getElementById('msb-balance');
+  if (elOpening) elOpening.textContent = formatYen(opening);
+  if (elIncome)  elIncome.textContent  = '+' + formatYen(income);
+  if (elExpense) elExpense.textContent = '-' + formatYen(expense);
+  if (elBalance) {
+    elBalance.textContent = formatYen(balance);
+    elBalance.className = 'msb-value ' + (balance >= 0 ? 'income' : 'expense');
   }
 }
 
@@ -213,17 +305,6 @@ function getMonthTransactions(year, month) {
 
 function renderDashboard() {
   const txs = getMonthTransactions(state.currentYear, state.currentMonth);
-
-  const income  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0);
-  const expense = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0);
-  const balance = income - expense;
-
-  document.getElementById('dash-income').textContent  = formatYen(income);
-  document.getElementById('dash-expense').textContent = formatYen(expense);
-  const balEl = document.getElementById('dash-balance');
-  balEl.textContent = formatYen(balance);
-  balEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
-
   renderCategoryChart(txs);
   renderTrendChart();
   renderRecentTransactions(txs);
@@ -349,7 +430,39 @@ function getFilteredTransactions() {
   return txs.sort((a,b) => b.date.localeCompare(a.date));
 }
 
+function renderOpeningCashCard() {
+  const y = state.currentYear, m = state.currentMonth;
+  const saved = isOpeningCashSaved(y, m);
+  const savedAmount = getOpeningCash(y, m);
+  const carriedOver = computeCarriedOverCash(y, m);
+
+  const monthLabel = document.getElementById('opening-cash-month-label');
+  const input = document.getElementById('opening-cash-input');
+  const note = document.getElementById('opening-cash-note');
+  const saveBtn = document.getElementById('opening-cash-save-btn');
+  const editBtn = document.getElementById('opening-cash-edit-btn');
+
+  if (monthLabel) monthLabel.textContent = getMonthLabel(y, m);
+
+  if (saved) {
+    // 保存済み: 読み取り専用、保存ボタン非活性、修正ボタン表示
+    if (input) { input.value = savedAmount; input.readOnly = true; }
+    if (saveBtn) saveBtn.disabled = true;
+    if (editBtn) editBtn.style.display = 'inline-flex';
+    if (note) note.innerHTML = '<i class="fas fa-check-circle" style="color:var(--income)"></i> 保存済み（確定）';
+  } else {
+    // 未保存: 前月繰越を自動セット、保存ボタン活性、修正ボタン非表示
+    if (input) { input.value = carriedOver; input.readOnly = false; }
+    if (saveBtn) saveBtn.disabled = false;
+    if (editBtn) editBtn.style.display = 'none';
+    if (note) note.innerHTML = `<i class="fas fa-info-circle" style="color:var(--text-muted)"></i> 前月繰越: <strong>${formatYen(carriedOver)}</strong>（未保存・編集可）`;
+  }
+}
+
 function renderTransactions() {
+  // 開始残高編集カード表示（収支一覧専用）
+  renderOpeningCashCard();
+
   // フィルターカテゴリ更新
   const txs = getMonthTransactions(state.currentYear, state.currentMonth);
   const cats = [...new Set(txs.map(t => t.category))];
@@ -508,6 +621,7 @@ async function handleTransactionSubmit(e) {
       showToast('取引を登録しました ✅');
     }
     resetForm();
+    renderMonthlySummaryBar();
   } catch (err) {
     showToast('保存に失敗しました', 'error');
   } finally {
@@ -929,6 +1043,31 @@ function bindEvents() {
   // 月切替
   document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
   document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
+
+  // 開始残高保存（収支一覧専用）
+  document.getElementById('opening-cash-save-btn').addEventListener('click', async () => {
+    const val = parseFloat(document.getElementById('opening-cash-input').value || '0');
+    const ok = await saveOpeningCash(state.currentYear, state.currentMonth, val);
+    showToast(ok ? '開始残高を保存しました 💰' : '保存に失敗しました', ok ? 'success' : 'error');
+    if (ok) {
+      renderOpeningCashCard();
+      renderMonthlySummaryBar();
+    }
+  });
+
+  // 開始残高 修正ボタン（収支一覧専用）
+  document.getElementById('opening-cash-edit-btn').addEventListener('click', () => {
+    const input = document.getElementById('opening-cash-input');
+    const saveBtn = document.getElementById('opening-cash-save-btn');
+    const editBtn = document.getElementById('opening-cash-edit-btn');
+    const note = document.getElementById('opening-cash-note');
+    input.readOnly = false;
+    input.focus();
+    input.select();
+    saveBtn.disabled = false;
+    editBtn.style.display = 'none';
+    note.innerHTML = '<i class="fas fa-pen" style="color:var(--expense)"></i> 編集中（保存で確定）';
+  });
 
   // 取引フォーム
   document.getElementById('transaction-form').addEventListener('submit', handleTransactionSubmit);

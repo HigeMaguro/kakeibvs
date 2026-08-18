@@ -32,13 +32,16 @@
   <!-- メインフォームエリア -->
   <main id="mob-main">
 
-    <!-- 収入／支出 タブ -->
+    <!-- 収入／支出／口座 タブ -->
     <div class="type-switcher">
       <button class="type-btn active" data-type="expense">
         <i class="fas fa-arrow-down"></i> 支出
       </button>
       <button class="type-btn" data-type="income">
         <i class="fas fa-arrow-up"></i> 収入
+      </button>
+      <button class="type-btn" data-type="account">
+        <i class="fas fa-building-columns"></i> 口座
       </button>
     </div>
 
@@ -101,16 +104,58 @@
         </div>
       </div>
 
-      <!-- カテゴリ -->
-      <div class="field-group">
-        <label class="field-label"><i class="fas fa-tag"></i> カテゴリ</label>
-        <div id="category-chips" class="category-chips"></div>
-        <button class="add-category-btn" id="add-cat-btn">
-          <i class="fas fa-plus"></i> カテゴリを追加
-        </button>
+      <!-- ===== 口座モード専用フィールド ===== -->
+      <div id="account-fields" style="display:none;">
+
+        <!-- 口座選択 -->
+        <div class="field-group">
+          <label class="field-label"><i class="fas fa-building-columns"></i> 口座</label>
+          <div id="account-chips" class="category-chips"></div>
+        </div>
+
+        <!-- 入金/出金 -->
+        <div class="field-group">
+          <label class="field-label"><i class="fas fa-right-left"></i> 種別</label>
+          <div class="acct-type-switcher">
+            <button class="acct-type-btn active" data-acct-type="withdrawal">
+              <i class="fas fa-arrow-up"></i> 出金
+            </button>
+            <button class="acct-type-btn" data-acct-type="deposit">
+              <i class="fas fa-arrow-down"></i> 入金
+            </button>
+          </div>
+        </div>
+
+        <!-- 種類 -->
+        <div class="field-group">
+          <label class="field-label"><i class="fas fa-tag"></i> 種類</label>
+          <div id="acct-cat-chips" class="category-chips"></div>
+        </div>
+
+        <!-- 家計簿連携 -->
+        <div class="field-group" id="acct-link-group">
+          <label class="field-label"><i class="fas fa-link"></i> 家計簿連携</label>
+          <select id="acct-link-mode" class="acct-link-select">
+            <option value="0">連携なし</option>
+            <option value="1">家計簿の収入へ連携</option>
+            <option value="2">家計簿の入出金へ連携</option>
+          </select>
+        </div>
       </div>
 
-      <!-- メモ -->
+      <!-- ===== 家計簿モード専用フィールド ===== -->
+      <div id="kakeibo-fields">
+        <!-- カテゴリ -->
+        <div class="field-group">
+          <label class="field-label"><i class="fas fa-tag"></i> カテゴリ</label>
+          <div id="category-chips" class="category-chips"></div>
+          <button class="add-category-btn" id="add-cat-btn">
+            <i class="fas fa-plus"></i> カテゴリを追加
+          </button>
+        </div>
+      </div>
+
+      <!-- メモ（共通） -->
       <div class="field-group">
         <label class="field-label" for="panel-memo"><i class="fas fa-pen-to-square"></i> メモ</label>
         <input type="text" id="panel-memo" class="memo-input" placeholder="例: コンビニ、スーパーなど" maxlength="50" />

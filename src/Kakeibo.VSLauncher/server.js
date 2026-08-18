@@ -86,6 +86,9 @@ db.exec(`
     category TEXT DEFAULT '',
     description TEXT DEFAULT '',
     related_account_id TEXT DEFAULT '',
+    link_mode INTEGER DEFAULT 0,
+    linked_income_tx_id TEXT DEFAULT '',
+    linked_expense_tx_id TEXT DEFAULT '',
     balance_after REAL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -95,12 +98,44 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_acct_tx_created ON account_transactions(created_at DESC);
 
   -- 汎用キーバリューストア（設定・カテゴリ保存用）
-  CREATE TABLE IF NOT EXISTS app_settings (
-    key TEXT PRIMARY KEY,
+  CREATE TABLE IF NOT EXISTS app_settings_new (
+    id TEXT PRIMARY KEY,
+    key TEXT NOT NULL,
     value TEXT NOT NULL,
     updated_at INTEGER NOT NULL
   );
+  CREATE INDEX IF NOT EXISTS idx_app_settings_key ON app_settings_new(key);
 `);
+// 旧 app_settings テーブルが id カラムなしで存在する場合は新テーブルへ移行
+try {
+  const hasIdCol = db.prepare("PRAGMA table_info(app_settings)").all().some(c => c.name === 'id');
+  if (hasIdCol) {
+    // 既に id カラム持ちならそのまま
+    db.exec('ALTER TABLE app_settings RENAME TO app_settings_tmp');
+    db.exec('ALTER TABLE app_settings_tmp RENAME TO app_settings');
+  } else if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='app_settings'").get()) {
+    // 旧テーブルから新テーブルへ移行
+    db.exec('INSERT OR IGNORE INTO app_settings_new(id, key, value, updated_at) SELECT key, key, value, updated_at FROM app_settings');
+    db.exec('DROP TABLE app_settings');
+    db.exec('ALTER TABLE app_settings_new RENAME TO app_settings');
+  } else {
+    db.exec('ALTER TABLE app_settings_new RENAME TO app_settings');
+  }
+} catch (e) {
+  // 移行エラーは無視（初回起動時など）
+  try { db.exec('ALTER TABLE app_settings_new RENAME TO app_settings'); } catch (_) {}
+}
+
+// マイグレーション: 旧DBカラムを追加
+const migrations = [
+  'ALTER TABLE account_transactions ADD COLUMN linked_tx_id TEXT DEFAULT ""',
+  'ALTER TABLE account_transactions ADD COLUMN link_mode INTEGER DEFAULT 0',
+  'ALTER TABLE account_transactions ADD COLUMN linked_income_tx_id TEXT DEFAULT ""',
+  'ALTER TABLE account_transactions ADD COLUMN linked_expense_tx_id TEXT DEFAULT ""',
+];
+for (const sql of migrations) {
+  try { db.exec(sql); } catch (e) { /* 既存カラムは無視 */ }
+}
 
 console.log(`[DB] SQLite initialized at: ${DB_PATH}`);
 
@@ -144,9 +179,14 @@ const KNOWN_TABLES = {
     defaultSort: 'created_at ASC',
   },
   account_transactions: {
-    columns: ['id', 'account_id', 'date', 'type', 'amount', 'category', 'description', 'related_account_id', 'balance_after', 'created_at', 'updated_at'],
-    numeric: ['amount', 'balance_after', 'created_at', 'updated_at'],
+    columns: ['id', 'account_id', 'date', 'type', 'amount', 'category', 'description', 'related_account_id', 'link_mode', 'linked_income_tx_id', 'linked_expense_tx_id', 'linked_tx_id', 'balance_after', 'created_at', 'updated_at'],
+    numeric: ['amount', 'balance_after', 'link_mode', 'created_at', 'updated_at'],
     defaultSort: 'created_at DESC',
+  },
+  app_settings: {
+    columns: ['id', 'key', 'value', 'updated_at'],
+    numeric: ['updated_at'],
+    defaultSort: 'updated_at DESC',
   }
 };
 

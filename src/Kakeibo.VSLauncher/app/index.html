@@ -34,7 +34,7 @@
       </li>
       <li><a href="mobile-input.html" class="nav-link nav-link-mobile" target="_blank"><i
             class="fas fa-mobile-screen"></i><span>スマホ入力</span><span class="nav-badge">NEW</span></a></li>
-      <li><a href="kakeibo_manual.htm" target="_blank"><span>マニュアル</span></a></li>
+      <li><a href="kakeibo_manual.htm" class="nav-link" target="_blank"><i class="fas fa-book"></i><span>マニュアル</span></a></li>
     </ul>
     <div class="sidebar-footer">
       <span id="current-date-display"></span>
@@ -60,6 +60,29 @@
       </div>
     </header>
 
+    <!-- 共通月次サマリーバー（全ページ表示） -->
+    <div id="monthly-summary-bar" class="monthly-summary-bar">
+      <div class="msb-item">
+        <div class="msb-label"><i class="fas fa-wallet"></i> 開始残高</div>
+        <div class="msb-value" id="msb-opening">¥0</div>
+      </div>
+      <div class="msb-sep">+</div>
+      <div class="msb-item">
+        <div class="msb-label"><i class="fas fa-arrow-up"></i> 収入合計</div>
+        <div class="msb-value income" id="msb-income">¥0</div>
+      </div>
+      <div class="msb-sep">−</div>
+      <div class="msb-item">
+        <div class="msb-label"><i class="fas fa-arrow-down"></i> 支出合計</div>
+        <div class="msb-value expense" id="msb-expense">¥0</div>
+      </div>
+      <div class="msb-sep">=</div>
+      <div class="msb-item">
+        <div class="msb-label"><i class="fas fa-coins"></i> 現金残高</div>
+        <div class="msb-value" id="msb-balance">¥0</div>
+      </div>
+    </div>
+
     <!-- ページコンテナ -->
     <div id="pages-container">
 
@@ -75,30 +98,6 @@
           </div>
           <i class="fas fa-chevron-right mobile-banner-arrow"></i>
         </a>
-
-        <div class="summary-cards">
-          <div class="card summary-card income-card">
-            <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
-            <div class="card-body">
-              <p class="card-label">今月の収入</p>
-              <p class="card-value" id="dash-income">¥0</p>
-            </div>
-          </div>
-          <div class="card summary-card expense-card">
-            <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
-            <div class="card-body">
-              <p class="card-label">今月の支出</p>
-              <p class="card-value" id="dash-expense">¥0</p>
-            </div>
-          </div>
-          <div class="card summary-card balance-card">
-            <div class="card-icon"><i class="fas fa-balance-scale"></i></div>
-            <div class="card-body">
-              <p class="card-label">今月の収支</p>
-              <p class="card-value" id="dash-balance">¥0</p>
-            </div>
-          </div>
-        </div>
 
         <div class="dashboard-grid">
           <div class="card chart-card">
@@ -132,6 +131,23 @@
 
       <!-- ===== 収支一覧 ===== -->
       <section id="page-transactions" class="page">
+        <!-- 開始残高編集カード（収支一覧専用） -->
+        <div class="card opening-cash-card">
+          <div class="opening-cash-row">
+            <div class="opening-cash-label">
+              <i class="fas fa-wallet"></i>
+              <span id="opening-cash-month-label"></span>の開始残高
+            </div>
+            <div class="opening-cash-input-wrap">
+              <input type="number" id="opening-cash-input" placeholder="0" min="0" />
+              <span class="opening-cash-suffix">円</span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="opening-cash-save-btn"><i class="fas fa-save"></i> 保存</button>
+            <button class="btn btn-secondary btn-sm" id="opening-cash-edit-btn" style="display:none;"><i class="fas fa-pen"></i> 修正</button>
+          </div>
+          <div class="opening-cash-note" id="opening-cash-note"></div>
+        </div>
+
         <div class="toolbar">
           <div class="search-box">
             <i class="fas fa-search"></i>
@@ -420,11 +436,31 @@
                     <option value="カード引落">
                     <option value="利息">
                     <option value="その他">
+                    <option value="食費">
+                    <option value="交通費">
+                    <option value="光熱費">
+                    <option value="通信費">
+                    <option value="日用品">
+                    <option value="医療費">
+                    <option value="娯楽">
+                    <option value="衣服">
+                    <option value="外食">
+                    <option value="教育">
+                    <option value="保険">
+                    <option value="住居">
                   </datalist>
                 </div>
                 <div class="form-group acct-tx-desc-group">
                   <label><i class="fas fa-pen"></i> 摘要</label>
                   <input type="text" id="acct-tx-desc" placeholder="摘要・メモ" maxlength="50" />
+                  <div class="acct-tx-link-select-wrap" id="acct-tx-link-kakeibo-wrap">
+                    <label><i class="fas fa-link"></i> 家計簿連携</label>
+                    <select id="acct-tx-link-mode">
+                      <option value="0">連携なし</option>
+                      <option value="1">家計簿の収入へ連携</option>
+                      <option value="2">家計簿の入出金へ連携</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group" id="acct-tx-related-group" style="display:none;">
                   <label><i class="fas fa-arrow-right-arrow-left"></i> 相手口座</label>
