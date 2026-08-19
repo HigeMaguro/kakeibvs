@@ -5,6 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # 毎ビルド異なる BUILD_DATE を渡し、Dockerfile 側の
+      # レイヤーキャッシュを強制的に無効化する。
+      # ※ Compose は変数展開でシェル環境変数を参照するため、
+      #    ビルド時に export BUILD_DATE=$(date -u +%Y%m%d%H%M%S) してから
+      #    docker compose up -d --build を実行するか、
+      #    下記のように固定値を書き換えてビルドし直してください。
+      args:
+        BUILD_DATE: "${BUILD_DATE:-manual}"
     image: kakeibo-app:latest
     container_name: kakeibo
     restart: unless-stopped

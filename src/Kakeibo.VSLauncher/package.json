@@ -1,5 +1,5 @@
 {
-  "name": "mykakeibo-app",
+  "name": "kakeibovs",
   "version": "1.0.0",
   "description": "MyKakeibo - 自宅サーバー/NAS向け家計簿Webアプリケーション",
   "main": "server.js",
