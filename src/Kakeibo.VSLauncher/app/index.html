@@ -32,6 +32,8 @@
       <li><a href="#" class="nav-link" data-page="analysis"><i class="fas fa-chart-bar"></i><span>分析</span></a></li>
       <li><a href="#" class="nav-link" data-page="accounts"><i class="fas fa-building-columns"></i><span>預金口座</span></a>
       </li>
+      <li><a href="#" class="nav-link" data-page="datamanage"><i class="fas fa-file-export"></i><span>データ管理</span></a>
+      </li>
       <li><a href="mobile-input.html" class="nav-link nav-link-mobile" target="_blank"><i
             class="fas fa-mobile-screen"></i><span>スマホ入力</span><span class="nav-badge">NEW</span></a></li>
       <li><a href="kakeibo_manual.htm" class="nav-link" target="_blank"><i class="fas fa-book"></i><span>マニュアル</span></a></li>
@@ -356,6 +358,7 @@
                     <option value="定期">定期預金</option>
                     <option value="貯蓄">貯蓄預金</option>
                     <option value="証券">証券口座</option>
+                    <option value="生活日">生活日口座</option>
                     <option value="その他">その他</option>
                   </select>
                 </div>
@@ -502,6 +505,56 @@
 
       </section><!-- /page-accounts -->
 
+      <!-- ===== データ管理 ===== -->
+      <section id="page-datamanage" class="page">
+
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-file-excel"></i> Excel エクスポート</h3>
+            </div>
+            <p id="excel-export-desc" style="margin:0 0 8px;color:var(--text-secondary, #666);">
+              選択中の月のデータを Excel (.xlsx) ファイルに出力します。<br>
+              月別サマリー・収支データ・予算・預金口座・口座明細・集計・グラフが含まれます。
+            </p>
+            <label style="display:flex;align-items:center;gap:8px;margin:0 0 16px;font-size:13px;color:var(--text-secondary, #666);cursor:pointer;">
+              <input type="checkbox" id="export-all-period" style="width:16px;height:16px;cursor:pointer;" />
+              全期間を含める (チェック時は選択月ではなく全データを出力)
+            </label>
+            <button class="btn btn-primary" id="excel-export-btn">
+              <i class="fas fa-download"></i> Excel ファイルをダウンロード
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-download"></i> JSON バックアップ</h3>
+            </div>
+            <p style="margin:0 0 16px;color:var(--text-secondary, #666);">
+              全データを JSON 形式でバックアップします。<br>
+              サーバー移行やデータ退避にご利用ください。
+            </p>
+            <button class="btn btn-secondary" id="json-export-btn">
+              <i class="fas fa-file-arrow-down"></i> JSON バックアップをダウンロード
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header">
+            <h3><i class="fas fa-circle-info"></i> バージョン情報</h3>
+          </div>
+          <table class="data-table" id="version-table">
+            <tbody>
+              <tr><td>アプリバージョン</td><td id="version-value">-</td></tr>
+              <tr><td>ビルド日時</td><td id="version-build-date">-</td></tr>
+              <tr><td>Node.js</td><td id="version-node">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </section><!-- /page-datamanage -->
+
     </div><!-- /pages-container -->
   </main>
 
@@ -522,7 +575,7 @@
   <div id="toast-container"></div>
 
   <script src="js/accounts.js"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 
 </html>

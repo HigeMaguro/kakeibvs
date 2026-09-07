@@ -1,140 +1,164 @@
 {
   ".vscode/settings.json": {
     "mtime": 1787796879.2063658,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "99914b932bd37a50b983c5e7c90ae93b",
-    "semantic_hash": ""
+    "semantic_hash": "99914b932bd37a50b983c5e7c90ae93b"
   },
   "kakeibvs.sln": {
     "mtime": 1786960643.5056174,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "9fe0eb5192906481c4e819f66c0d0626",
-    "semantic_hash": ""
+    "semantic_hash": "9fe0eb5192906481c4e819f66c0d0626"
   },
   "src/Kakeibo.VSLauncher/Kakeibo.VSLauncher.csproj": {
     "mtime": 1786960643.4876182,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "d0b5952007fe6f5d7e302deb32534c73",
-    "semantic_hash": ""
+    "semantic_hash": "d0b5952007fe6f5d7e302deb32534c73"
   },
   "src/Kakeibo.VSLauncher/Program.cs": {
     "mtime": 1786943002.3377032,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "732aa19792d266334ecbd38caa4b4dfe",
-    "semantic_hash": ""
+    "semantic_hash": "732aa19792d266334ecbd38caa4b4dfe"
   },
   "src/Kakeibo.VSLauncher/Properties/launchSettings.json": {
     "mtime": 1786943018.0037751,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "8ab7e4ec5242d4a723cedbaa18856a6a",
-    "semantic_hash": ""
+    "semantic_hash": "8ab7e4ec5242d4a723cedbaa18856a6a"
   },
   "src/Kakeibo.VSLauncher/app/js/accounts.js": {
     "mtime": 1787028645.762226,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "f1060bba98b07309f8e06a4f5a229a51",
-    "semantic_hash": ""
+    "semantic_hash": "f1060bba98b07309f8e06a4f5a229a51"
   },
   "src/Kakeibo.VSLauncher/app/js/app.js": {
-    "mtime": 1787029103.9489572,
-    "seen": 1787797649.4858804,
-    "ast_hash": "e78e57c12f21f303e2838109c9fd6f0f",
-    "semantic_hash": ""
+    "mtime": 1788420794.4503922,
+    "seen": 1788504304.3538005,
+    "ast_hash": "164af00a0c933b3ded3ad708d71f8260",
+    "semantic_hash": "164af00a0c933b3ded3ad708d71f8260"
   },
   "src/Kakeibo.VSLauncher/app/js/mobile-input.js": {
     "mtime": 1787029561.6208553,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "1df9d11af630330e9d4b6e4bd1b485fa",
-    "semantic_hash": ""
+    "semantic_hash": "1df9d11af630330e9d4b6e4bd1b485fa"
   },
   "src/Kakeibo.VSLauncher/package.json": {
-    "mtime": 1787123940.8294811,
-    "seen": 1787797649.4858804,
-    "ast_hash": "2d0a0ad2fdbbab0f28f15a436027564c",
-    "semantic_hash": ""
+    "mtime": 1788420724.1331697,
+    "seen": 1788504304.3538005,
+    "ast_hash": "928b86f88cb90f0127913fe5b5df7d80",
+    "semantic_hash": "928b86f88cb90f0127913fe5b5df7d80"
   },
   "src/Kakeibo.VSLauncher/server.js": {
-    "mtime": 1787026671.395111,
-    "seen": 1787797649.4858804,
-    "ast_hash": "cadefe75efa237671a8e3f935161dace",
-    "semantic_hash": ""
+    "mtime": 1788424653.8543403,
+    "seen": 1788504304.3538005,
+    "ast_hash": "9d5e4197a5cef9d78e5bc20ee3ef49e9",
+    "semantic_hash": "9d5e4197a5cef9d78e5bc20ee3ef49e9"
   },
   ".agents/rules/graphify.md": {
     "mtime": 1787797450.2990046,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
-    "semantic_hash": ""
+    "semantic_hash": "a0e4d192b9e2e17256124dbfc8e24e6a"
   },
   ".agents/workflows/graphify.md": {
     "mtime": 1787797450.3010046,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "a831cf3669f1e6ab85d8a80ebe655f99",
-    "semantic_hash": ""
+    "semantic_hash": "a831cf3669f1e6ab85d8a80ebe655f99"
   },
   "DOCKER_DEPLOYMENT.md": {
-    "mtime": 1786943594.491691,
-    "seen": 1787797649.4858804,
-    "ast_hash": "b9e5e3ef83d91b4af46b1bb9f93149e0",
-    "semantic_hash": ""
+    "mtime": 1788428680.3323562,
+    "seen": 1788504304.3538005,
+    "ast_hash": "52d5f236f3175ae02cc06548443e0cd6",
+    "semantic_hash": "52d5f236f3175ae02cc06548443e0cd6"
   },
   "LICENSE.txt": {
     "mtime": 1786943772.6629777,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "6d75c57c64742ead9ffcc475c56b4ad0",
-    "semantic_hash": ""
+    "semantic_hash": "6d75c57c64742ead9ffcc475c56b4ad0"
   },
   "README.md": {
     "mtime": 1786943772.6619823,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "e1694a9104844a4a9a226526a9a2d61a",
-    "semantic_hash": ""
+    "semantic_hash": "e1694a9104844a4a9a226526a9a2d61a"
   },
   "Web\u30b7\u30b9\u30c6\u30e0\u6a5f\u80fd\u6982\u8981.md": {
     "mtime": 1786960294.5023966,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "92b6636d096e7e9c8e6ef3f245142e2c",
-    "semantic_hash": ""
+    "semantic_hash": "92b6636d096e7e9c8e6ef3f245142e2c"
   },
   "src/Kakeibo.VSLauncher/DEPLOY_UGREEN_NAS.md": {
     "mtime": 1787128738.359178,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "b81b19e5ba51f95ebfa86d6342e1262a",
-    "semantic_hash": ""
+    "semantic_hash": "b81b19e5ba51f95ebfa86d6342e1262a"
   },
   "src/Kakeibo.VSLauncher/README.md": {
     "mtime": 1786943029.986356,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "570acf213c4a7bc9c47958d0d85c6a72",
-    "semantic_hash": ""
+    "semantic_hash": "570acf213c4a7bc9c47958d0d85c6a72"
   },
   "src/Kakeibo.VSLauncher/app/README.md": {
     "mtime": 1786939604.346098,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "edb5ad82c381b1f0ba6aa0abe322f574",
-    "semantic_hash": ""
+    "semantic_hash": "edb5ad82c381b1f0ba6aa0abe322f574"
   },
   "src/Kakeibo.VSLauncher/app/index.html": {
-    "mtime": 1787030103.306239,
-    "seen": 1787797649.4858804,
-    "ast_hash": "4f0746d9b6c4fb5668ad78ac50068eb0",
-    "semantic_hash": ""
+    "mtime": 1788420798.0683267,
+    "seen": 1788504304.3538005,
+    "ast_hash": "464316970035a6d534f61499490f2b97",
+    "semantic_hash": "464316970035a6d534f61499490f2b97"
   },
   "src/Kakeibo.VSLauncher/app/mobile-input.html": {
     "mtime": 1787029456.959013,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "fc0b96f5cc20f96d4a0f342e7c6f3028",
-    "semantic_hash": ""
+    "semantic_hash": "fc0b96f5cc20f96d4a0f342e7c6f3028"
   },
   "src/Kakeibo.VSLauncher/doc/Web\u30b7\u30b9\u30c6\u30e0\u6a5f\u80fd\u6982\u8981.md": {
     "mtime": 1786960294.5023966,
-    "seen": 1787797649.4858804,
+    "seen": 1787908541.4528642,
     "ast_hash": "92b6636d096e7e9c8e6ef3f245142e2c",
-    "semantic_hash": ""
+    "semantic_hash": "92b6636d096e7e9c8e6ef3f245142e2c"
   },
   "src/Kakeibo.VSLauncher/docker-compose.yml": {
-    "mtime": 1787128344.52538,
-    "seen": 1787797649.4858804,
-    "ast_hash": "cafb386c143ffb66c41a33ce0275e841",
-    "semantic_hash": ""
+    "mtime": 1788430289.305174,
+    "seen": 1788504304.3538005,
+    "ast_hash": "46fd16e0bb896df53f3b197ac3e4fca6",
+    "semantic_hash": "46fd16e0bb896df53f3b197ac3e4fca6"
+  },
+  "src/Kakeibo.VSLauncher/deploy/deploy-nas.ps1": {
+    "mtime": 1788430326.3341987,
+    "seen": 1788504304.3538005,
+    "ast_hash": "8e46fa68db04c2c3c607874eeee730ed",
+    "semantic_hash": "8e46fa68db04c2c3c607874eeee730ed"
+  },
+  "src/Kakeibo.VSLauncher/deploy/rollback-nas.ps1": {
+    "mtime": 1788430313.6109035,
+    "seen": 1788504304.3538005,
+    "ast_hash": "7fb4125af086c1eab091acb6d5415a02",
+    "semantic_hash": "7fb4125af086c1eab091acb6d5415a02"
+  },
+  "src/Kakeibo.VSLauncher/deploy/setup-ssh-key.ps1": {
+    "mtime": 1788430286.0522623,
+    "seen": 1788504304.3538005,
+    "ast_hash": "a031b7662af8985c800fbca90533acee",
+    "semantic_hash": "a031b7662af8985c800fbca90533acee"
+  },
+  ".github/copilot-instructions.md": {
+    "mtime": 1788419783.3082047,
+    "seen": 1788504304.3538005,
+    "ast_hash": "1953f5a6e590a211329c8cff6f0fb3f3",
+    "semantic_hash": "1953f5a6e590a211329c8cff6f0fb3f3"
   }
 }

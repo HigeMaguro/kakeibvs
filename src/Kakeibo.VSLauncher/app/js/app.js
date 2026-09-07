@@ -227,6 +227,7 @@ function navigateTo(pageName, skipHistory = false) {
     budget:       '予算管理',
     analysis:     '分析',
     accounts:     '預金口座管理',
+    datamanage:   'データ管理',
   };
   document.getElementById('page-title').textContent = titles[pageName] || '';
   state.currentPage = pageName;
@@ -248,6 +249,7 @@ function refreshCurrentPage() {
     case 'budget':       renderBudget(); break;
     case 'analysis':     renderAnalysis(); break;
     case 'accounts':     if (typeof renderAccountsPage === 'function') renderAccountsPage(); break;
+    case 'datamanage':   if (typeof renderDataManagePage === 'function') renderDataManagePage(); break;
   }
 }
 
@@ -990,6 +992,41 @@ function initSidebar() {
 }
 
 // ===================================================
+// データ管理ページ
+// ===================================================
+async function renderDataManagePage() {
+  // 選択月に応じてエクスポートの説明文を更新
+  const desc = document.getElementById('excel-export-desc');
+  if (desc) {
+    desc.innerHTML = `${getMonthLabel(state.currentYear, state.currentMonth)}のデータを Excel (.xlsx) ファイルに出力します。<br>月別サマリー・収支データ・予算・預金口座・口座明細・集計・グラフが含まれます。`;
+  }
+
+  try {
+    const res = await fetch('api/version');
+    if (!res.ok) throw new Error();
+    const info = await res.json();
+    const elV = document.getElementById('version-value');
+    const elB = document.getElementById('version-build-date');
+    const elN = document.getElementById('version-node');
+    if (elV) elV.textContent = info.version || '-';
+    if (elB) elB.textContent = info.build_date || '-';
+    if (elN) elN.textContent = info.node || '-';
+  } catch (e) {
+    const elV = document.getElementById('version-value');
+    if (elV) elV.textContent = '取得できませんでした';
+  }
+}
+
+function downloadExport(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// ===================================================
 // カテゴリ追加モーダル
 // ===================================================
 function openCategoryModal() {
@@ -1117,6 +1154,26 @@ function bindEvents() {
   // 予算フォーム
   document.getElementById('budget-form').addEventListener('submit', handleBudgetSubmit);
   document.getElementById('budget-cancel-btn').addEventListener('click', resetBudgetForm);
+
+  // データ管理ページ: エクスポートボタン
+  const excelBtn = document.getElementById('excel-export-btn');
+  if (excelBtn) {
+    excelBtn.addEventListener('click', () => {
+      const allToggle = document.getElementById('export-all-period');
+      const useAll = !!(allToggle && allToggle.checked);
+      const url = useAll
+        ? 'api/export/excel'
+        : `api/export/excel?month=${getMonthKey(state.currentYear, state.currentMonth)}`;
+      showToast(useAll ? '全期間の Excel ファイルを生成中です...' : `${getMonthLabel(state.currentYear, state.currentMonth)}の Excel ファイルを生成中です...`);
+      downloadExport(url);
+    });
+  }
+  const jsonBtn = document.getElementById('json-export-btn');
+  if (jsonBtn) {
+    jsonBtn.addEventListener('click', () => {
+      downloadExport('api/export');
+    });
+  }
 }
 
 // ===================================================

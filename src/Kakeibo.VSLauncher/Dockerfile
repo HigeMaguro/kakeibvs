@@ -8,6 +8,11 @@
 ARG BUILD_DATE=unknown
 ENV BUILD_DATE=${BUILD_DATE}
 
+# アプリバージョン (package.json のバージョンをデプロイスクリプトから渡す)
+# /api/version と「データ管理」ページで稼働中バージョンを確認できる。
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -26,6 +31,7 @@ RUN npm install --omit=dev
 
 # ソースコード・静的アセットをコピー
 COPY server.js ./
+COPY scripts ./scripts
 COPY app ./app
 
 # ソース一式の「内容ベース ハッシュ」をマーカーファイルに書き出す。
